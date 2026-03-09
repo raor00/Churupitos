@@ -72,7 +72,7 @@ export default function Home() {
       <div className="grid grid-cols-2 gap-1">
         <Link href="/accounts" className="col-span-2">
           <KPICard
-            title={`Saldo Total (${currency})`}
+            title={`Churupitos (${currency})`}
             amount={currentBalance}
             currencyPrefix={currency === "USD" ? "$" : "Bs."}
             className="rounded-2xl transition-transform hover:scale-[1.01] active:scale-[0.99]"
