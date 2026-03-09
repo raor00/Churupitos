@@ -42,8 +42,25 @@ export interface Account {
     id: string;
     user_id: string;
     name: string;
+    provider?: string; // Banesco, Binance, Zelle...
+    color?: string;
+    icon?: string;
     currency: "VES" | "USD" | "USDT" | "EUR";
     balance: number;
     created_at: string;
     updated_at: string;
+}
+
+export interface User {
+    id: string;
+    name: string;
+    username: string;
+    /** Hex color for avatar */
+    color: string;
+    /** SHA-256 hash of PIN */
+    pinHash?: string;
+    /** Base64-encoded WebAuthn credential ID for biometric auth */
+    biometricCredentialId?: string;
+    biometricEnabled: boolean;
+    created_at: string;
 }
