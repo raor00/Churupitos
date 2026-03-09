@@ -19,6 +19,7 @@ interface TransactionState {
 
     // Fetch initial data
     fetchData: (userId: string) => Promise<void>;
+    clearStore: () => void;
 
     addTransaction: (tx: Omit<Transaction, "id" | "created_at" | "updated_at">) => Promise<void>;
     updateTransaction: (id: string, updates: Partial<Omit<Transaction, "id" | "created_at" | "user_id">>) => Promise<void>;
@@ -39,6 +40,10 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
     accounts: [],
     isLoading: false,
     error: null,
+
+    clearStore: () => {
+        set({ transactions: [], categories: [], accounts: [], isLoading: false, error: null });
+    },
 
     fetchData: async (userId: string) => {
         set({ isLoading: true, error: null });

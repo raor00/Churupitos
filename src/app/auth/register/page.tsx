@@ -199,6 +199,13 @@ export default function RegisterPage() {
                         >
                             Continuar
                         </button>
+
+                        <p className="font-mono text-[10px] text-muted-foreground/50 text-center leading-relaxed">
+                            Al continuar aceptas nuestras{" "}
+                            <Link href="/privacy" className="underline hover:text-muted-foreground transition-colors">
+                                políticas de privacidad
+                            </Link>
+                        </p>
                     </div>
                 )}
 

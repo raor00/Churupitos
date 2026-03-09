@@ -138,6 +138,12 @@ export function BottomNav() {
                         {/* Sheet */}
                         <motion.div
                             key="sheet"
+                            drag="y"
+                            dragConstraints={{ top: 0 }}
+                            dragElastic={{ top: 0, bottom: 0.3 }}
+                            onDragEnd={(_, info) => {
+                                if (info.offset.y > 80 || info.velocity.y > 400) setSheetOpen(false);
+                            }}
                             initial={{ y: "100%", opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
                             exit={{ y: "100%", opacity: 0 }}

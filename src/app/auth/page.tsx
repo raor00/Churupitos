@@ -191,6 +191,13 @@ export default function AuthPage() {
                             <Plus className="w-4 h-4" />
                             <span>Crear nuevo usuario</span>
                         </Link>
+
+                        <Link
+                            href="/privacy"
+                            className="w-full text-center font-mono text-[10px] text-muted-foreground/50 hover:text-muted-foreground transition-colors py-1"
+                        >
+                            Políticas de privacidad
+                        </Link>
                     </motion.div>
                 )}
 

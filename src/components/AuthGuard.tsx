@@ -7,11 +7,11 @@ import { useTransactionStore } from "@/lib/store/useTransactions";
 import { Header } from "@/components/layout/Header";
 import { BottomNav } from "@/components/layout/BottomNav";
 
-const AUTH_PATHS = ["/auth", "/auth/register"];
+const AUTH_PATHS = ["/auth", "/auth/register", "/privacy"];
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
     const { isAuthenticated, currentUserId, initDefaultUser } = useAuthStore();
-    const { seedForUser } = useTransactionStore();
+    const { seedForUser, clearStore } = useTransactionStore();
     const router = useRouter();
     const pathname = usePathname();
 
@@ -28,16 +28,20 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         }
     }, [isAuthenticated, isAuthPath, pathname, router]);
 
-    // Ensure defaults + fetch user data once authenticated.
-    // Resolve legacy "rafa-default" string to the real Supabase UUID.
+    // Load data for the authenticated user. When currentUserId changes
+    // (switching users or logging out), clear the store first so no data leaks.
     useEffect(() => {
         if (isAuthenticated && currentUserId) {
             const resolvedId = currentUserId === "rafa-default"
                 ? "f6f1f8a4-47d8-4c13-9123-b8f7cf2fe001"
                 : currentUserId;
+            clearStore();
             seedForUser(resolvedId);
+        } else if (!isAuthenticated) {
+            clearStore();
         }
-    }, [isAuthenticated, currentUserId, seedForUser]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentUserId, isAuthenticated]);
 
     // Auth pages: render without app chrome (no header, no bottom nav)
     if (isAuthPath) {
