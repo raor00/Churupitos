@@ -134,12 +134,14 @@ export function Header() {
                 </Link>
 
                 {isAuthenticated && user && (
-                    <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-white font-mono font-bold text-sm shadow-sm"
+                    <Link
+                        href="/profile"
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-white font-mono font-bold text-sm shadow-sm hover:opacity-80 active:scale-95 transition-all"
                         style={{ backgroundColor: user.color }}
+                        title="Mi perfil"
                     >
                         {user.name[0].toUpperCase()}
-                    </div>
+                    </Link>
                 )}
             </div>
         </header>

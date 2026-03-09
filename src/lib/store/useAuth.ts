@@ -19,6 +19,7 @@ interface AuthState {
     getCurrentUser: () => User | null;
     updateUser: (userId: string, updates: Partial<Pick<User, "name" | "username" | "color">>) => void;
     deleteUser: (userId: string) => void;
+    changePin: (userId: string, currentPin: string, newPin: string) => Promise<boolean>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -30,13 +31,14 @@ export const useAuthStore = create<AuthState>()(
 
             initDefaultUser: () => {
                 if (get().users.length > 0) return;
+                // PIN 300103 pre-hashed with SHA-256 → base64url
                 set({
                     users: [{
                         id: "rafa-default",
                         name: "Rafa",
                         username: "rafa",
                         color: "#cc0000",
-                        pinHash: undefined,
+                        pinHash: "ezY4fbxWJ_TnhBrq1dCx_C2w4Rfj94FrIPU9LbPH5Lw",
                         biometricEnabled: false,
                         created_at: new Date().toISOString(),
                     }],
@@ -117,6 +119,22 @@ export const useAuthStore = create<AuthState>()(
                     currentUserId: state.currentUserId === userId ? null : state.currentUserId,
                     isAuthenticated: state.currentUserId === userId ? false : state.isAuthenticated,
                 }));
+            },
+
+            changePin: async (userId, currentPin, newPin) => {
+                const { users } = get();
+                const user = users.find(u => u.id === userId);
+                if (!user) return false;
+                // Verify current PIN (skip if no PIN set)
+                if (user.pinHash) {
+                    const currentHash = await hashPin(currentPin);
+                    if (currentHash !== user.pinHash) return false;
+                }
+                const newHash = await hashPin(newPin);
+                set(state => ({
+                    users: state.users.map(u => u.id === userId ? { ...u, pinHash: newHash } : u),
+                }));
+                return true;
             },
         }),
         { name: "churupitos-auth" }
