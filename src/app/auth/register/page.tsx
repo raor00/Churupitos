@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useAuthStore } from "@/lib/store/useAuth";
 import { useTransactionStore } from "@/lib/store/useTransactions";
 import { isBiometricSupported } from "@/lib/auth/webauthn";
-import { ArrowLeft, Check, Fingerprint } from "lucide-react";
+import { ArrowLeft, Check, Fingerprint, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -13,12 +13,14 @@ const COLORS = [
     "#FCD535", "#004B87", "#E01F4E", "#F97316",
 ];
 
+type Step = "info" | "pin" | "pin-confirm" | "bio" | "balance";
+
 export default function RegisterPage() {
     const router = useRouter();
     const { register, setupBiometric } = useAuthStore();
-    const { seedForUser } = useTransactionStore();
+    const { seedForUser, updateAccountBalance, accounts } = useTransactionStore();
 
-    const [step, setStep] = useState<"info" | "pin" | "pin-confirm" | "bio">("info");
+    const [step, setStep] = useState<Step>("info");
     const [name, setName] = useState("");
     const [username, setUsername] = useState("");
     const [colorIdx, setColorIdx] = useState(0);
@@ -27,6 +29,9 @@ export default function RegisterPage() {
     const [pinError, setPinError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [newUserId, setNewUserId] = useState<string | null>(null);
+
+    // Balance setup state — one entry per account
+    const [balanceInputs, setBalanceInputs] = useState<Record<string, string>>({});
 
     const bioSupported = isBiometricSupported();
 
@@ -65,7 +70,7 @@ export default function RegisterPage() {
         if (bioSupported) {
             setStep("bio");
         } else {
-            router.replace("/auth");
+            setStep("balance");
         }
     };
 
@@ -74,32 +79,63 @@ export default function RegisterPage() {
         setLoading(true);
         await setupBiometric(newUserId);
         setLoading(false);
+        setStep("balance");
+    };
+
+    const handleSaveBalances = async () => {
+        setLoading(true);
+        // Get the user's accounts (they were seeded, now in the store)
+        const userAccounts = accounts.filter(a => a.user_id === newUserId);
+        await Promise.all(
+            userAccounts.map(acc => {
+                const raw = balanceInputs[acc.id] ?? "";
+                const num = parseFloat(raw);
+                if (!isNaN(num) && num > 0) {
+                    return updateAccountBalance(acc.id, num);
+                }
+                return Promise.resolve();
+            })
+        );
+        setLoading(false);
         router.replace("/auth");
     };
 
     const currentPin = step === "pin" ? pin : pinConfirm;
     const isPinStep = step === "pin" || step === "pin-confirm";
 
+    const userAccounts = accounts.filter(a => a.user_id === newUserId);
+
+    const currencySymbol = (curr: string) => {
+        if (curr === "VES") return "Bs.";
+        if (curr === "EUR") return "€";
+        return "$";
+    };
+
     return (
         <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-12">
             <div className="w-full max-w-xs">
                 {/* Header */}
                 <div className="flex items-center space-x-3 mb-10">
-                    <Link href="/auth" className="p-2 rounded-full border border-black/10 hover:bg-black/5 transition-colors">
-                        <ArrowLeft className="w-5 h-5" />
-                    </Link>
+                    {step !== "balance" && (
+                        <Link href="/auth" className="p-2 rounded-full border border-black/10 hover:bg-black/5 transition-colors">
+                            <ArrowLeft className="w-5 h-5" />
+                        </Link>
+                    )}
                     <div>
                         <h1 className="font-mono font-bold uppercase tracking-tight text-lg">Nuevo usuario</h1>
                         <p className="font-mono text-[10px] text-muted-foreground uppercase">
-                            {step === "info" ? "1/3 · Datos" : step === "pin" ? "2/3 · PIN" : step === "pin-confirm" ? "2/3 · Confirmar" : "3/3 · Biométrico"}
+                            {step === "info" ? "1/4 · Datos"
+                                : step === "pin" ? "2/4 · PIN"
+                                : step === "pin-confirm" ? "2/4 · Confirmar"
+                                : step === "bio" ? "3/4 · Biométrico"
+                                : "4/4 · Saldo inicial"}
                         </p>
                     </div>
                 </div>
 
-                {/* Step: Info */}
+                {/* ── Step: Info ── */}
                 {step === "info" && (
                     <div className="space-y-6">
-                        {/* Color picker */}
                         <div>
                             <label className="text-[10px] font-mono uppercase text-muted-foreground tracking-widest block mb-2">
                                 Color de avatar
@@ -120,7 +156,6 @@ export default function RegisterPage() {
                             </div>
                         </div>
 
-                        {/* Preview */}
                         <div className="flex justify-center">
                             <div
                                 className="w-20 h-20 rounded-full flex items-center justify-center text-white font-mono font-bold text-3xl shadow-md transition-all"
@@ -160,14 +195,14 @@ export default function RegisterPage() {
                         <button
                             onClick={handleInfoNext}
                             disabled={!name.trim() || !username.trim()}
-                            className="w-full bg-primary text-primary-foreground font-mono font-bold uppercase tracking-widest py-4 rounded-xl shadow-lg hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-40"
+                            className="w-full bg-foreground text-background font-mono font-bold uppercase tracking-widest py-4 rounded-xl shadow-lg active:scale-[0.98] transition-all disabled:opacity-40"
                         >
                             Continuar
                         </button>
                     </div>
                 )}
 
-                {/* Step: PIN / PIN confirm */}
+                {/* ── Step: PIN / PIN confirm ── */}
                 {isPinStep && (
                     <div className="space-y-6">
                         <div className="text-center space-y-4">
@@ -218,7 +253,7 @@ export default function RegisterPage() {
                             <button
                                 onClick={handleFinish}
                                 disabled={loading}
-                                className="w-full bg-primary text-primary-foreground font-mono font-bold uppercase tracking-widest py-4 rounded-xl shadow-lg hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50"
+                                className="w-full bg-foreground text-background font-mono font-bold uppercase tracking-widest py-4 rounded-xl shadow-lg active:scale-[0.98] transition-all disabled:opacity-50"
                             >
                                 {loading ? "Creando..." : "Crear cuenta"}
                             </button>
@@ -226,7 +261,7 @@ export default function RegisterPage() {
                     </div>
                 )}
 
-                {/* Step: Biometric */}
+                {/* ── Step: Biometric ── */}
                 {step === "bio" && (
                     <div className="space-y-8 text-center">
                         <div className="w-20 h-20 rounded-full bg-black/5 flex items-center justify-center mx-auto border border-black/10">
@@ -241,15 +276,71 @@ export default function RegisterPage() {
                         <button
                             onClick={handleSetupBio}
                             disabled={loading}
-                            className="w-full bg-primary text-primary-foreground font-mono font-bold uppercase tracking-widest py-4 rounded-xl shadow-lg hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50"
+                            className="w-full bg-foreground text-background font-mono font-bold uppercase tracking-widest py-4 rounded-xl shadow-lg active:scale-[0.98] transition-all disabled:opacity-50"
                         >
                             {loading ? "Configurando..." : "Activar biométrico"}
                         </button>
                         <button
-                            onClick={() => router.replace("/auth")}
+                            onClick={() => setStep("balance")}
                             className="w-full font-mono text-xs text-muted-foreground hover:text-foreground transition-colors py-2"
                         >
                             Omitir por ahora
+                        </button>
+                    </div>
+                )}
+
+                {/* ── Step: Initial balance ── */}
+                {step === "balance" && (
+                    <div className="space-y-6">
+                        <div className="text-center space-y-2">
+                            <div className="w-14 h-14 rounded-full bg-black/5 flex items-center justify-center mx-auto">
+                                <Wallet className="w-7 h-7 text-muted-foreground" />
+                            </div>
+                            <h2 className="font-mono font-bold uppercase text-lg tracking-tight">Saldo inicial</h2>
+                            <p className="font-mono text-xs text-muted-foreground leading-relaxed">
+                                ¿Cuánto dinero tienes ahora mismo en cada cuenta?<br />
+                                Puedes dejarlo en 0 y ajustarlo luego.
+                            </p>
+                        </div>
+
+                        <div className="space-y-3">
+                            {userAccounts.length === 0 ? (
+                                <p className="font-mono text-xs text-muted-foreground text-center opacity-60">
+                                    Cargando cuentas...
+                                </p>
+                            ) : (
+                                userAccounts.map(acc => (
+                                    <div key={acc.id} className="paper-card rounded-xl p-3.5">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="font-mono text-xs font-bold uppercase tracking-wide">{acc.name}</span>
+                                            <span className="font-mono text-[9px] text-muted-foreground uppercase bg-black/5 px-2 py-0.5 rounded-full">
+                                                {acc.currency}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-mono text-sm text-muted-foreground font-bold">
+                                                {currencySymbol(acc.currency)}
+                                            </span>
+                                            <input
+                                                type="number"
+                                                inputMode="decimal"
+                                                placeholder="0.00"
+                                                value={balanceInputs[acc.id] ?? ""}
+                                                onChange={e => setBalanceInputs(prev => ({ ...prev, [acc.id]: e.target.value }))}
+                                                className="flex-1 bg-transparent font-mono text-xl font-bold outline-none border-b border-black/10 pb-0.5 placeholder:text-black/20"
+                                            />
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        <button
+                            onClick={handleSaveBalances}
+                            disabled={loading}
+                            className="w-full bg-foreground text-background font-mono font-bold uppercase tracking-widest py-4 rounded-xl shadow-lg active:scale-[0.98] transition-all disabled:opacity-50"
+                        >
+                            {loading ? "Guardando..." : "Empezar →"}
                         </button>
                     </div>
                 )}
