@@ -43,6 +43,10 @@ export interface Account {
     user_id: string;
     name: string;
     provider?: string; // Banesco, Binance, Zelle...
+    account_scope?: "national" | "international";
+    bank_id?: string;
+    logo_url?: string;
+    display_icon?: string;
     color?: string;
     icon?: string;
     currency: "VES" | "USD" | "USDT" | "EUR";

@@ -1,33 +1,46 @@
 "use client";
 
+import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useRatesStore, getRate } from "@/lib/store/useRates";
-import { ArrowLeft } from "lucide-react";
+import { icons, type LucideIcon, ArrowLeft, Check } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useRatesStore, getRate } from "@/lib/store/useRates";
+import {
+    ACCOUNT_ICON_OPTIONS,
+    ACCOUNT_SCOPE_OPTIONS,
+    getBankById,
+    getBanksByScope,
+    type BankScope,
+} from "@/lib/accounts/bankCatalog";
+
+const iconRegistry = icons as Record<string, LucideIcon>;
 
 const accountSchema = z.object({
+    account_scope: z.enum(["national", "international"]),
+    bank_id: z.string().min(1, "Selecciona un banco o proveedor"),
     name: z.string().min(3, "Nombre muy corto"),
-    provider: z.string().optional(),
     currency: z.enum(["USD", "VES", "EUR", "USDT"]),
-    color: z.string().optional(),
+    logo_url: z.string().optional(),
+    display_icon: z.string().min(1, "Selecciona un icono"),
     balance: z.number().min(0, "El saldo no puede ser negativo"),
 });
 
 type AccountFormValues = z.infer<typeof accountSchema>;
 
-const PROVIDERS = [
-    { id: "Binance", name: "Binance", color: "#FCD535", icon: "Wallet", currencies: ["USDT", "USD"] },
-    { id: "Banesco", name: "Banesco", color: "#00693C", icon: "Landmark", currencies: ["VES"] },
-    { id: "Mercantil", name: "Mercantil", color: "#004B87", icon: "Landmark", currencies: ["VES", "USD"] },
-    { id: "Zinli", name: "Zinli", color: "#E01F4E", icon: "CreditCard", currencies: ["USD"] },
-    { id: "Zelle", name: "Zelle", color: "#741EE8", icon: "Send", currencies: ["USD"] },
-    { id: "Efectivo", name: "Efectivo", color: "#16a34a", icon: "Banknote", currencies: ["USD", "VES", "EUR"] },
-];
+const resolveIcon = (iconName?: string): LucideIcon => {
+    if (!iconName) return iconRegistry.Wallet;
+    return iconRegistry[iconName] ?? iconRegistry.Wallet;
+};
+
+const currencySymbol = (currency: AccountFormValues["currency"]) => {
+    if (currency === "VES") return "Bs.";
+    if (currency === "EUR") return "EUR";
+    return "$";
+};
 
 export default function NewAccountPage() {
     const router = useRouter();
@@ -35,153 +48,276 @@ export default function NewAccountPage() {
     const ratesState = useRatesStore();
     const rate = getRate(ratesState);
 
-    const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
-
-    const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<AccountFormValues>({
+    const {
+        register,
+        handleSubmit,
+        watch,
+        setValue,
+        formState: { errors },
+    } = useForm<AccountFormValues>({
         resolver: zodResolver(accountSchema),
         defaultValues: {
+            account_scope: "international",
+            bank_id: "",
+            name: "",
             currency: "USD",
+            logo_url: "",
+            display_icon: "Wallet",
             balance: 0,
         },
     });
 
+    const scope = watch("account_scope");
+    const bankId = watch("bank_id");
     const currency = watch("currency");
     const balance = watch("balance") ?? 0;
+    const logoUrl = watch("logo_url");
+    const displayIcon = watch("display_icon");
+    const formName = watch("name");
+
+    const availableBanks = useMemo(() => getBanksByScope(scope), [scope]);
+    const selectedBank = getBankById(bankId);
+    const availableCurrencies = selectedBank?.supportedCurrencies ?? (scope === "national" ? ["VES"] : ["USD", "USDT", "EUR"]);
+    const previewLogo = logoUrl?.trim() || selectedBank?.defaultLogoUrl;
+    const PreviewIcon = resolveIcon(displayIcon || selectedBank?.defaultIcon);
 
     const usdEquiv = currency === "VES" ? balance / rate : null;
-    const vesEquiv = (currency === "USD" || currency === "USDT") ? balance * rate : null;
+    const vesEquiv = currency === "USD" ? balance * rate : null;
+    const usdtAsUsd = currency === "USDT" ? balance : null;
 
-    const onSubmit = (data: AccountFormValues) => {
-        const providerObj = PROVIDERS.find(p => p.id === selectedProvider);
-        addAccount({
+    const onSelectScope = (nextScope: BankScope) => {
+        setValue("account_scope", nextScope, { shouldValidate: true });
+        setValue("bank_id", "", { shouldValidate: true });
+        setValue("name", "");
+        setValue("logo_url", "");
+        const defaultCurrency = nextScope === "national" ? "VES" : "USD";
+        setValue("currency", defaultCurrency, { shouldValidate: true });
+        setValue("display_icon", nextScope === "national" ? "Landmark" : "Wallet");
+    };
+
+    const onSelectBank = (nextBankId: string) => {
+        const bank = getBankById(nextBankId);
+        if (!bank) return;
+        setValue("bank_id", bank.id, { shouldValidate: true });
+        setValue("currency", bank.supportedCurrencies[0], { shouldValidate: true });
+        setValue("display_icon", bank.defaultIcon, { shouldValidate: true });
+        if (!formName.trim()) {
+            setValue("name", bank.name, { shouldValidate: true });
+        }
+        if (!logoUrl?.trim()) {
+            setValue("logo_url", bank.defaultLogoUrl ?? "");
+        }
+    };
+
+    const onSubmit = async (data: AccountFormValues) => {
+        const bank = getBankById(data.bank_id);
+        await addAccount({
             name: data.name,
+            provider: bank?.name ?? data.name,
+            bank_id: data.bank_id,
+            account_scope: data.account_scope,
+            logo_url: data.logo_url?.trim() || bank?.defaultLogoUrl,
+            display_icon: data.display_icon,
+            icon: data.display_icon,
+            color: bank?.brandColor ?? "#666666",
             currency: data.currency,
-            provider: providerObj ? providerObj.name : data.provider,
-            icon: providerObj ? providerObj.icon : "Wallet",
-            color: providerObj ? providerObj.color : data.color || "#666",
             balance: data.balance,
         });
         router.push("/accounts");
     };
 
-    const handleProviderSelect = (pid: string) => {
-        setSelectedProvider(pid);
-        const provider = PROVIDERS.find(p => p.id === pid);
-        if (provider) {
-            if (!watch("name")) setValue("name", provider.name);
-            setValue("provider", provider.name);
-            setValue("color", provider.color);
-            if (!provider.currencies.includes(watch("currency"))) {
-                setValue("currency", provider.currencies[0] as AccountFormValues["currency"]);
-            }
-        }
-    };
-
     return (
         <div className="pb-28 pt-4">
-            <header className="flex items-center space-x-4 mb-8">
+            <header className="flex items-center space-x-4 mb-6">
                 <Link
                     href="/accounts"
                     className="p-2 border border-black/10 rounded-full hover:bg-black/5 bg-white/50 backdrop-blur-sm transition-colors"
                 >
                     <ArrowLeft className="w-5 h-5" />
                 </Link>
-                <h1 className="text-xl font-mono font-bold uppercase tracking-tighter">
-                    Nueva Cuenta
-                </h1>
+                <div>
+                    <h1 className="text-xl font-mono font-bold uppercase tracking-tighter">Nueva Cuenta</h1>
+                    <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                        Nacional o internacional
+                    </p>
+                </div>
             </header>
 
-            <div className="paper-card p-6 rounded-2xl relative overflow-hidden">
-                <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22n%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23n)%22/%3E%3C/svg%3E')]" />
-
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-7 relative z-10 w-full max-w-sm mx-auto">
-
-                    {/* Quick Provider Selection */}
-                    <div>
-                        <label className="text-[10px] font-mono uppercase text-muted-foreground ml-1 mb-2 block tracking-widest">
-                            Proveedor
-                        </label>
-                        <div className="grid grid-cols-3 gap-2">
-                            {PROVIDERS.map(p => (
+            <div className="paper-card p-5 rounded-2xl relative overflow-hidden">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 w-full max-w-sm mx-auto">
+                    <div className="grid grid-cols-2 gap-2">
+                        {ACCOUNT_SCOPE_OPTIONS.map((option) => {
+                            const OptionIcon = option.icon;
+                            const active = scope === option.id;
+                            return (
                                 <button
-                                    key={p.id}
+                                    key={option.id}
                                     type="button"
-                                    onClick={() => handleProviderSelect(p.id)}
-                                    style={{
-                                        backgroundColor: selectedProvider === p.id ? p.color : "rgba(0,0,0,0.04)",
-                                        color: selectedProvider === p.id ? "#fff" : "currentColor",
-                                    }}
-                                    className={`py-2.5 px-1 rounded-xl font-mono text-xs border transition-all ${
-                                        selectedProvider === p.id
-                                            ? "border-transparent shadow-md font-bold scale-[1.03]"
-                                            : "border-black/5 hover:bg-black/8 active:scale-95"
+                                    onClick={() => onSelectScope(option.id)}
+                                    className={`rounded-2xl border p-3 text-left transition-all ${
+                                        active
+                                            ? "border-primary bg-primary/10 shadow-sm"
+                                            : "border-black/10 bg-white/50 hover:bg-black/5"
                                     }`}
                                 >
-                                    {p.name}
+                                    <OptionIcon className="w-5 h-5 mb-2 text-muted-foreground" />
+                                    <p className="font-mono text-sm font-bold uppercase">{option.label}</p>
+                                    <p className="font-mono text-[10px] text-muted-foreground mt-1">{option.description}</p>
                                 </button>
-                            ))}
+                            );
+                        })}
+                    </div>
+
+                    <div>
+                        <label className="text-[10px] font-mono uppercase text-muted-foreground ml-1 mb-2 block tracking-widest">
+                            {scope === "national" ? "Banco nacional" : "Banco o proveedor"}
+                        </label>
+                        <div className="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
+                            {availableBanks.map((bank) => {
+                                const active = bank.id === bankId;
+                                const BankIcon = resolveIcon(bank.defaultIcon);
+                                return (
+                                    <button
+                                        key={bank.id}
+                                        type="button"
+                                        onClick={() => onSelectBank(bank.id)}
+                                        className={`rounded-2xl border p-3 text-left transition-all ${
+                                            active
+                                                ? "border-primary bg-primary/10 shadow-sm"
+                                                : "border-black/10 bg-white/50 hover:bg-black/5"
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <div
+                                                className="w-9 h-9 rounded-xl flex items-center justify-center"
+                                                style={{
+                                                    backgroundColor: `${bank.brandColor}20`,
+                                                    color: bank.brandColor,
+                                                }}
+                                            >
+                                                <BankIcon className="w-4 h-4" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="font-mono text-xs font-bold truncate">{bank.name}</p>
+                                                <p className="font-mono text-[9px] uppercase text-muted-foreground">
+                                                    {bank.supportedCurrencies.join(" · ")}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        {errors.bank_id && <p className="text-error text-[10px] font-mono mt-1">{errors.bank_id.message}</p>}
+                    </div>
+
+                    <div className="rounded-2xl border border-black/10 bg-white/50 p-4">
+                        <div className="flex items-center gap-3">
+                            <div
+                                className="w-14 h-14 rounded-2xl flex items-center justify-center overflow-hidden border border-black/10 bg-white"
+                                style={
+                                    previewLogo
+                                        ? {
+                                            backgroundImage: `url("${previewLogo}")`,
+                                            backgroundSize: "contain",
+                                            backgroundPosition: "center",
+                                            backgroundRepeat: "no-repeat",
+                                        }
+                                        : undefined
+                                }
+                            >
+                                {!previewLogo && <PreviewIcon className="w-6 h-6 text-muted-foreground" />}
+                            </div>
+                            <div className="min-w-0">
+                                <p className="font-mono text-sm font-bold truncate">
+                                    {formName || selectedBank?.name || "Vista previa"}
+                                </p>
+                                <p className="font-mono text-[10px] uppercase text-muted-foreground">
+                                    {selectedBank?.name || "Selecciona un banco"} · {currency}
+                                </p>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Name */}
                     <div>
                         <label className="text-[10px] font-mono uppercase text-muted-foreground ml-1 tracking-widest">
-                            Nombre
+                            Nombre de la cuenta
                         </label>
                         <input
                             {...register("name")}
                             className="w-full bg-transparent border-b-2 border-black/20 focus:border-primary font-mono text-xl p-2 transition-colors outline-none placeholder:text-black/25"
-                            placeholder="Ej. Binance Spot"
+                            placeholder={scope === "national" ? "Ej. Banesco Nomina" : "Ej. Wise Personal"}
                         />
-                        {errors.name && (
-                            <p className="text-error text-[10px] font-mono mt-1">{errors.name.message}</p>
-                        )}
+                        {errors.name && <p className="text-error text-[10px] font-mono mt-1">{errors.name.message}</p>}
                     </div>
 
-                    {/* Currency */}
                     <div>
                         <label className="text-[10px] font-mono uppercase text-muted-foreground ml-1 tracking-widest">
                             Moneda
                         </label>
-                        <div className="flex gap-1.5 overflow-x-auto pb-1 pt-2 scrollbar-hide">
-                            {["USD", "VES", "EUR", "USDT"].map((curr) => {
-                                const allowed =
-                                    !selectedProvider ||
-                                    PROVIDERS.find(p => p.id === selectedProvider)?.currencies.includes(curr);
-                                const isSelected = watch("currency") === curr;
-
+                        <div className="flex gap-1.5 overflow-x-auto pb-1 pt-2">
+                            {availableCurrencies.map((itemCurrency) => {
+                                const active = currency === itemCurrency;
                                 return (
-                                    <label
-                                        key={curr}
-                                        className={`px-4 py-2 rounded-xl font-mono text-sm font-bold transition-all whitespace-nowrap flex-shrink-0 cursor-pointer ${
-                                            !allowed ? "opacity-25 cursor-not-allowed" : ""
-                                        } ${
-                                            isSelected
+                                    <button
+                                        key={itemCurrency}
+                                        type="button"
+                                        onClick={() => setValue("currency", itemCurrency, { shouldValidate: true })}
+                                        className={`px-4 py-2 rounded-xl font-mono text-sm font-bold transition-all whitespace-nowrap ${
+                                            active
                                                 ? "bg-foreground text-background shadow-sm"
                                                 : "bg-black/5 text-muted-foreground hover:bg-black/10"
                                         }`}
                                     >
-                                        <input
-                                            type="radio"
-                                            value={curr}
-                                            {...register("currency")}
-                                            disabled={!allowed}
-                                            className="hidden"
-                                        />
-                                        {curr}
-                                    </label>
+                                        {itemCurrency}
+                                    </button>
                                 );
                             })}
                         </div>
                     </div>
 
-                    {/* Initial Balance */}
                     <div>
                         <label className="text-[10px] font-mono uppercase text-muted-foreground ml-1 tracking-widest">
-                            Saldo Actual{" "}
-                            <span className="opacity-50 normal-case">
-                                ({currency === "VES" ? "Bs." : currency === "EUR" ? "€" : "$"})
-                            </span>
+                            URL del logo
+                        </label>
+                        <input
+                            {...register("logo_url")}
+                            className="w-full bg-transparent border-b-2 border-black/20 focus:border-primary font-mono text-sm p-2 transition-colors outline-none placeholder:text-black/25"
+                            placeholder="https://..."
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-[10px] font-mono uppercase text-muted-foreground ml-1 mb-2 block tracking-widest">
+                            Icono adicional
+                        </label>
+                        <div className="grid grid-cols-4 gap-2">
+                            {ACCOUNT_ICON_OPTIONS.map((option) => {
+                                const Icon = resolveIcon(option.icon);
+                                const active = displayIcon === option.id;
+                                return (
+                                    <button
+                                        key={option.id}
+                                        type="button"
+                                        onClick={() => setValue("display_icon", option.id, { shouldValidate: true })}
+                                        className={`rounded-2xl border p-3 flex flex-col items-center justify-center gap-2 transition-all ${
+                                            active
+                                                ? "border-primary bg-primary/10 shadow-sm"
+                                                : "border-black/10 bg-white/50 hover:bg-black/5"
+                                        }`}
+                                    >
+                                        <Icon className="w-5 h-5" />
+                                        <span className="font-mono text-[9px] uppercase text-center">{option.label}</span>
+                                        {active && <Check className="w-3.5 h-3.5 text-primary" />}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="text-[10px] font-mono uppercase text-muted-foreground ml-1 tracking-widest">
+                            Saldo actual <span className="opacity-50 normal-case">({currencySymbol(currency)})</span>
                         </label>
                         <input
                             type="number"
@@ -191,29 +327,23 @@ export default function NewAccountPage() {
                             className="w-full bg-transparent border-b-2 border-black/20 focus:border-primary font-mono text-2xl font-bold p-2 transition-colors outline-none placeholder:text-black/25"
                             placeholder="0.00"
                         />
-                        {errors.balance && (
-                            <p className="text-error text-[10px] font-mono mt-1">{errors.balance.message}</p>
-                        )}
+                        {errors.balance && <p className="text-error text-[10px] font-mono mt-1">{errors.balance.message}</p>}
 
-                        {/* Conversion hint */}
                         {balance > 0 && (
                             <div className="mt-2 px-3 py-2 rounded-lg bg-black/5 border border-black/5">
                                 {usdEquiv !== null && (
                                     <p className="font-mono text-[10px] text-muted-foreground">
-                                        ≈{" "}
-                                        <span className="font-bold text-foreground">
-                                            ${usdEquiv.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                        </span>{" "}
-                                        USD · tasa Bs.{rate.toFixed(2)}/$
+                                        ≈ <span className="font-bold text-foreground">${usdEquiv.toFixed(2)}</span> USD
                                     </p>
                                 )}
                                 {vesEquiv !== null && (
                                     <p className="font-mono text-[10px] text-muted-foreground">
-                                        ≈{" "}
-                                        <span className="font-bold text-foreground">
-                                            Bs.{vesEquiv.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                        </span>{" "}
-                                        · tasa Bs.{rate.toFixed(2)}/$
+                                        ≈ <span className="font-bold text-foreground">Bs.{vesEquiv.toFixed(2)}</span>
+                                    </p>
+                                )}
+                                {usdtAsUsd !== null && (
+                                    <p className="font-mono text-[10px] text-muted-foreground">
+                                        ≈ <span className="font-bold text-foreground">${usdtAsUsd.toFixed(2)}</span> USD (1:1 con USDT)
                                     </p>
                                 )}
                             </div>

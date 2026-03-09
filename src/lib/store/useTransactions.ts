@@ -1,6 +1,14 @@
 import { create } from "zustand";
 import { Transaction, Category, Account } from "@/types";
 import { supabase } from "@/lib/supabase/client";
+import { buildDefaultCategorySeed, categoryIdentity } from "@/lib/categories/catalog";
+import { deserializeAccountFromDb, serializeAccountForDb } from "@/lib/accounts/accountMeta";
+
+const getErrorMessage = (error: unknown) => (error instanceof Error ? error.message : "Unknown error");
+const getErrorDetails = (error: unknown) => {
+    if (!error || typeof error !== "object") return null;
+    return JSON.parse(JSON.stringify(error));
+};
 
 interface TransactionState {
     transactions: Transaction[];
@@ -46,12 +54,12 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
             set({
                 transactions: txRes.data as Transaction[],
                 categories: catRes.data as Category[],
-                accounts: accRes.data as Account[],
+                accounts: (accRes.data as Account[]).map(deserializeAccountFromDb),
                 isLoading: false
             });
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Error fetching data:", err);
-            set({ error: err.message, isLoading: false });
+            set({ error: getErrorMessage(err), isLoading: false });
         }
     },
 
@@ -92,13 +100,14 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
             if (accError) throw accError;
 
             // 4. Update local state
+            const normalizedUpdatedAcc = deserializeAccountFromDb(updatedAcc as Account);
             set((state) => ({
                 transactions: [newTx as Transaction, ...state.transactions],
-                accounts: state.accounts.map(acc => acc.id === updatedAcc.id ? updatedAcc as Account : acc)
+                accounts: state.accounts.map(acc => acc.id === updatedAcc.id ? normalizedUpdatedAcc : acc)
             }));
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Error adding transaction:", err);
-            set({ error: err.message });
+            set({ error: getErrorMessage(err) });
         }
     },
 
@@ -111,24 +120,25 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
                 .single();
             if (error) throw error;
             set((state) => ({ categories: [...state.categories, data as Category] }));
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Error adding category:", err);
-            set({ error: err.message });
+            set({ error: getErrorMessage(err) });
         }
     },
 
     addAccount: async (acc) => {
         try {
+            const dbAccount = serializeAccountForDb(acc);
             const { data, error } = await supabase
                 .from('accounts')
-                .insert([{ ...acc }])
+                .insert([dbAccount])
                 .select()
                 .single();
             if (error) throw error;
-            set((state) => ({ accounts: [...state.accounts, data as Account] }));
-        } catch (err: any) {
+            set((state) => ({ accounts: [...state.accounts, deserializeAccountFromDb(data as Account)] }));
+        } catch (err: unknown) {
             console.error("Error adding account:", err);
-            set({ error: err.message });
+            set({ error: getErrorMessage(err) });
         }
     },
 
@@ -137,7 +147,7 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
             const { data, error } = await supabase.from('categories').update(updates).eq('id', id).select().single();
             if (error) throw error;
             set((state) => ({ categories: state.categories.map(c => c.id === id ? { ...c, ...data as Category } : c) }));
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
         }
     },
@@ -147,7 +157,7 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
             const { error } = await supabase.from('categories').delete().eq('id', id);
             if (error) throw error;
             set((state) => ({ categories: state.categories.filter(c => c.id !== id) }));
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
         }
     },
@@ -156,8 +166,9 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
         try {
             const { data, error } = await supabase.from('accounts').update({ balance: newBalance, updated_at: new Date().toISOString() }).eq('id', accountId).select().single();
             if (error) throw error;
-            set((state) => ({ accounts: state.accounts.map(a => a.id === accountId ? { ...a, ...data as Account } : a) }));
-        } catch (err: any) {
+            const normalizedAccount = deserializeAccountFromDb(data as Account);
+            set((state) => ({ accounts: state.accounts.map(a => a.id === accountId ? { ...a, ...normalizedAccount } : a) }));
+        } catch (err: unknown) {
             console.error(err);
         }
     },
@@ -167,33 +178,82 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
             const { error } = await supabase.from('accounts').delete().eq('id', accountId);
             if (error) throw error;
             set((state) => ({ accounts: state.accounts.filter(a => a.id !== accountId) }));
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
         }
     },
 
     seedForUser: async (userId) => {
         try {
-            const { data: existing } = await supabase.from('categories').select('id').eq('user_id', userId).limit(1);
-            if (existing && existing.length > 0) return;
-
-            const seedCats = [
-                { user_id: userId, name: "Comida", icon: "utensils", color: "#cc0000", type: "expense", monthly_budget: 300, is_default: true },
-                { user_id: userId, name: "Transporte", icon: "car", color: "#004B87", type: "expense", monthly_budget: 100, is_default: true },
-                { user_id: userId, name: "Salario", icon: "briefcase", color: "#00693C", type: "income", is_default: true },
-            ];
-
-            const seedAcc = [
-                { user_id: userId, name: "Efectivo", icon: "Banknote", color: "#16a34a", currency: "USD", balance: 500 }
-            ];
-
-            await Promise.all([
-                supabase.from('categories').insert(seedCats),
-                supabase.from('accounts').insert(seedAcc)
+            const [catRes, accRes] = await Promise.all([
+                supabase.from('categories').select('id, name, type').eq('user_id', userId),
+                supabase.from('accounts').select('id').eq('user_id', userId).limit(1),
             ]);
+            if (catRes.error) {
+                console.error("seedForUser: categories read failed", getErrorDetails(catRes.error));
+                throw catRes.error;
+            }
+            if (accRes.error) {
+                console.error("seedForUser: accounts read failed", getErrorDetails(accRes.error));
+                throw accRes.error;
+            }
 
-        } catch (err: any) {
-            console.error("Error seeding data:", err);
+            const existingCategoryKeys = new Set(
+                (catRes.data ?? []).map((cat) => categoryIdentity(cat.type as "income" | "expense", cat.name))
+            );
+
+            const missingCategories = buildDefaultCategorySeed(userId).filter(
+                (cat) => !existingCategoryKeys.has(categoryIdentity(cat.type, cat.name))
+            );
+
+            if (missingCategories.length > 0) {
+                const { error: insertCatError } = await supabase.from('categories').insert(missingCategories);
+                if (insertCatError) {
+                    console.error("seedForUser: categories insert failed", getErrorDetails(insertCatError));
+                    throw insertCatError;
+                }
+            }
+
+            if (!accRes.data || accRes.data.length === 0) {
+                const seedAcc: Array<Omit<Account, "id" | "created_at" | "updated_at">> = [
+                    {
+                        user_id: userId,
+                        name: "Efectivo USD",
+                        provider: "Efectivo",
+                        bank_id: "cash-usd",
+                        account_scope: "international",
+                        icon: "Banknote",
+                        display_icon: "Banknote",
+                        color: "#16a34a",
+                        currency: "USD",
+                        balance: 500,
+                    },
+                    {
+                        user_id: userId,
+                        name: "Banco Nacional",
+                        provider: "Banesco",
+                        bank_id: "banesco",
+                        account_scope: "national",
+                        icon: "Landmark",
+                        display_icon: "Landmark",
+                        color: "#00693C",
+                        currency: "VES",
+                        balance: 0,
+                    },
+                ];
+                const seedAccForDb = seedAcc.map((account) =>
+                    serializeAccountForDb(account as Omit<Account, "id" | "created_at" | "updated_at">)
+                );
+                const { error: insertAccError } = await supabase.from('accounts').insert(seedAccForDb);
+                if (insertAccError) {
+                    console.error("seedForUser: accounts insert failed", getErrorDetails(insertAccError));
+                    throw insertAccError;
+                }
+            }
+
+            await get().fetchData(userId);
+        } catch (err: unknown) {
+            console.error("Error seeding data:", getErrorDetails(err) ?? err);
         }
     },
 
@@ -202,7 +262,7 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
             const { data, error } = await supabase.from('transactions').insert(txs).select();
             if (error) throw error;
             set((state) => ({ transactions: [...Array.isArray(data) ? data : [data], ...state.transactions] }));
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Error importing txs:", err);
         }
     }

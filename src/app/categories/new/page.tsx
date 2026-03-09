@@ -7,6 +7,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { ArrowLeft, Check } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 const catSchema = z.object({
     name: z.string().min(2, "Nombre muy corto").max(20, "Nombre muy largo"),
@@ -25,11 +26,14 @@ const COLORS = [
 
 export default function NewCategoryPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { addCategory } = useCurrentUser();
+    const queryType = searchParams.get("type");
+    const initialType = queryType === "income" ? "income" : "expense";
 
     const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<CatFormValues>({
         resolver: zodResolver(catSchema),
-        defaultValues: { type: "expense", color: COLORS[0] },
+        defaultValues: { type: initialType, color: COLORS[0] },
     });
 
     const catType = watch("type");

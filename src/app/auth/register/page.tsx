@@ -59,7 +59,7 @@ export default function RegisterPage() {
         }
         setLoading(true);
         const user = await register(name.trim(), username.trim(), pin, colorIdx);
-        seedForUser(user.id);
+        await seedForUser(user.id);
         setNewUserId(user.id);
         setLoading(false);
         if (bioSupported) {

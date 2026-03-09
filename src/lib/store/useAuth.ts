@@ -4,6 +4,8 @@ import { User } from "@/types";
 import { hashPin, registerBiometric, authenticateWithBiometric } from "@/lib/auth/webauthn";
 
 const USER_COLORS = ["#111111", "#cc0000", "#00693C", "#741EE8", "#FCD535", "#004B87", "#E01F4E"];
+const RAFA_DEFAULT_ID = "f6f1f8a4-47d8-4c13-9123-b8f7cf2fe001";
+const LEGACY_RAFA_ID = "rafa-default";
 
 interface AuthState {
     users: User[];
@@ -30,11 +32,32 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: false,
 
             initDefaultUser: () => {
-                if (get().users.length > 0) return;
+                const state = get();
+                const hasUsers = state.users.length > 0;
+
+                if (hasUsers) {
+                    const migratedUsers = state.users.map((user) =>
+                        user.id === LEGACY_RAFA_ID
+                            ? { ...user, id: RAFA_DEFAULT_ID }
+                            : user
+                    );
+                    const shouldMigrateCurrent = state.currentUserId === LEGACY_RAFA_ID;
+                    if (
+                        migratedUsers.some((user, index) => user.id !== state.users[index]?.id) ||
+                        shouldMigrateCurrent
+                    ) {
+                        set({
+                            users: migratedUsers,
+                            currentUserId: shouldMigrateCurrent ? RAFA_DEFAULT_ID : state.currentUserId,
+                        });
+                    }
+                    return;
+                }
+
                 // PIN 300103 pre-hashed with SHA-256 → base64url
                 set({
                     users: [{
-                        id: "rafa-default",
+                        id: RAFA_DEFAULT_ID,
                         name: "Rafa",
                         username: "rafa",
                         color: "#cc0000",

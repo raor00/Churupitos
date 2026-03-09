@@ -11,7 +11,7 @@ const AUTH_PATHS = ["/auth", "/auth/register"];
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
     const { isAuthenticated, currentUserId, initDefaultUser } = useAuthStore();
-    const { fetchData } = useTransactionStore();
+    const { seedForUser } = useTransactionStore();
     const router = useRouter();
     const pathname = usePathname();
 
@@ -28,12 +28,12 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         }
     }, [isAuthenticated, isAuthPath, pathname, router]);
 
-    // Fetch user data from Supabase once authenticated
+    // Ensure defaults + fetch user data once authenticated
     useEffect(() => {
         if (isAuthenticated && currentUserId) {
-            fetchData(currentUserId);
+            seedForUser(currentUserId);
         }
-    }, [isAuthenticated, currentUserId, fetchData]);
+    }, [isAuthenticated, currentUserId, seedForUser]);
 
     // Auth pages: render without app chrome (no header, no bottom nav)
     if (isAuthPath) {

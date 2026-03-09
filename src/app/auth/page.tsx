@@ -34,7 +34,7 @@ export default function AuthPage() {
 
     const handleSuccess = async (userId: string) => {
         setScreen("loading");
-        seedForUser(userId);
+        await seedForUser(userId);
         // Brief loading delay for UX
         await new Promise(r => setTimeout(r, 900));
         setScreen("success");
