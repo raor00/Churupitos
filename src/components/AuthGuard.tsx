@@ -28,10 +28,14 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         }
     }, [isAuthenticated, isAuthPath, pathname, router]);
 
-    // Ensure defaults + fetch user data once authenticated
+    // Ensure defaults + fetch user data once authenticated.
+    // Resolve legacy "rafa-default" string to the real Supabase UUID.
     useEffect(() => {
         if (isAuthenticated && currentUserId) {
-            seedForUser(currentUserId);
+            const resolvedId = currentUserId === "rafa-default"
+                ? "f6f1f8a4-47d8-4c13-9123-b8f7cf2fe001"
+                : currentUserId;
+            seedForUser(resolvedId);
         }
     }, [isAuthenticated, currentUserId, seedForUser]);
 

@@ -34,7 +34,7 @@ export default function AuthPage() {
 
     const handleSuccess = async (userId: string) => {
         setScreen("loading");
-        await seedForUser(userId);
+        const _resolvedId = userId === "rafa-default" ? "f6f1f8a4-47d8-4c13-9123-b8f7cf2fe001" : userId; await seedForUser(_resolvedId);
         // Brief loading delay for UX
         await new Promise(r => setTimeout(r, 900));
         setScreen("success");

@@ -15,7 +15,9 @@ export function useCurrentUser() {
     const txStore = useTransactionStore();
     const bucketStore = useBucketStore();
 
-    const userId = currentUserId ?? "__demo__";
+    // Resolve legacy local ID to real Supabase UUID
+    const rawId = currentUserId ?? "__demo__";
+    const userId = rawId === "rafa-default" ? "f6f1f8a4-47d8-4c13-9123-b8f7cf2fe001" : rawId;
 
     return {
         user: getCurrentUser(),
