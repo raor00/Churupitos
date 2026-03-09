@@ -1,0 +1,16 @@
+{
+  "name": "Churupitos",
+  "short_name": "Churupitos",
+  "description": "Personal finance, typewritten.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f5f0",
+  "theme_color": "#2b2b2b",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}

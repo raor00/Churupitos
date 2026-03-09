@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Churupitos - Dashboard</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&amp;family=Plus+Jakarta+Sans:wght@400;500&amp;family=Space+Grotesk:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<style>
+    :root {
+      --color-primary: #00f5a0;
+      --color-background: #0a0a1a;
+      --color-surface: rgba(19, 19, 43, 0.8);
+      --color-text: #ffffff;
+      --color-muted: #8f90a6;
+      --color-accent: #7c3aed;
+      --color-danger: #ff4757;
+      --border-glass: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    
+    body {
+      background-color: var(--color-background);
+      background-image: radial-gradient(circle at top right, rgba(124, 58, 237, 0.15), transparent 40%),
+                        radial-gradient(circle at bottom left, rgba(0, 245, 160, 0.05), transparent 40%);
+      color: var(--color-text);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    h1, h2, h3, h4, h5, h6, .font-heading {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .font-mono-data {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .glass-panel {
+      background: var(--color-surface);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: var(--border-glass);
+      border-radius: 1rem;
+    }
+
+    .glass-panel:hover.hover-glow-accent {
+      box-shadow: 0 0 20px rgba(124, 58, 237, 0.2);
+      border-color: rgba(124, 58, 237, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .glass-panel:hover.hover-glow-primary {
+      box-shadow: 0 0 20px rgba(0, 245, 160, 0.15);
+      border-color: rgba(0, 245, 160, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  </style>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#00f5a0",
+            "background-light": "#f5f8f7",
+            "background-dark": "#0a0a1a",
+            "surface": "rgba(19, 19, 43, 0.8)",
+            "accent": "#7c3aed",
+            "danger": "#ff4757",
+            "muted": "#8f90a6",
+          },
+          fontFamily: {
+            "display": ["Space Grotesk", "sans-serif"],
+            "body": ["Plus Jakarta Sans", "sans-serif"],
+            "mono": ["JetBrains Mono", "monospace"]
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="flex bg-background-dark text-slate-100 antialiased selection:bg-primary/30 selection:text-primary">
+<!-- Left Sidebar -->
+<aside class="fixed inset-y-0 left-0 z-40 hidden w-[250px] flex-col border-r border-white/10 bg-[#0a0a1a]/90 backdrop-blur-xl lg:flex">
+<div class="flex h-20 items-center px-6">
+<div class="flex items-center gap-3">
+<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 text-primary">
+<span class="material-symbols-outlined text-[20px]">rocket_launch</span>
+</div>
+<h1 class="font-display text-xl font-bold tracking-tight text-white">Churupitos</h1>
+</div>
+</div>
+<nav class="flex-1 space-y-2 px-4 py-6">
+<a class="group flex items-center gap-3 rounded-lg bg-primary/10 px-4 py-3 text-primary transition-colors" href="#">
+<span class="material-symbols-outlined transition-transform group-hover:scale-110">grid_view</span>
+<span class="font-display text-sm font-semibold">Dashboard</span>
+</a>
+<a class="group flex items-center gap-3 rounded-lg px-4 py-3 text-muted hover:bg-white/5 hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined transition-transform group-hover:scale-110">list_alt</span>
+<span class="font-display text-sm font-semibold">Transacciones</span>
+</a>
+<a class="group flex items-center gap-3 rounded-lg px-4 py-3 text-muted hover:bg-white/5 hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined transition-transform group-hover:scale-110">track_changes</span>
+<span class="font-display text-sm font-semibold">Metas</span>
+</a>
+<a class="group flex items-center gap-3 rounded-lg px-4 py-3 text-muted hover:bg-white/5 hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined transition-transform group-hover:scale-110">monitoring</span>
+<span class="font-display text-sm font-semibold">Análisis</span>
+</a>
+</nav>
+<div class="p-4">
+<div class="rounded-xl border border-white/5 bg-white/5 p-4">
+<div class="flex items-center gap-3 mb-2">
+<div class="h-8 w-8 rounded-full bg-accent/20 flex items-center justify-center text-accent">
+<span class="material-symbols-outlined text-sm">person</span>
+</div>
+<div>
+<p class="text-sm font-medium text-white">Usuario Demo</p>
+<p class="text-xs text-muted">Pro Plan</p>
+</div>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 lg:pl-[250px]">
+<!-- Mobile Header -->
+<header class="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-white/10 bg-[#0a0a1a]/80 px-4 backdrop-blur-md lg:hidden">
+<div class="flex items-center gap-2">
+<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 text-primary">
+<span class="material-symbols-outlined text-[20px]">rocket_launch</span>
+</div>
+<h1 class="font-display text-lg font-bold text-white">Churupitos</h1>
+</div>
+<button class="text-muted hover:text-white">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</header>
+<div class="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+<!-- Top Section: Header & KPIs -->
+<div class="flex flex-col gap-6 xl:flex-row xl:items-start">
+<!-- Left/Main KPI Area -->
+<div class="flex-1 space-y-6">
+<div class="flex items-center justify-between">
+<div>
+<h2 class="font-display text-2xl font-bold text-white md:text-3xl">Visión General</h2>
+<p class="text-sm text-muted">Bienvenido de vuelta. Aquí está tu resumen financiero.</p>
+</div>
+</div>
+<!-- KPI Grid -->
+<div class="grid gap-4 md:grid-cols-3">
+<!-- Total Balance Card -->
+<div class="glass-panel p-6 md:col-span-2 relative overflow-hidden group hover-glow-primary">
+<div class="absolute top-0 right-0 p-4">
+<div class="flex h-10 items-center justify-center rounded-lg bg-black/40 p-1 border border-white/10">
+<label class="flex cursor-pointer h-full items-center justify-center rounded-md px-3 has-[:checked]:bg-primary/20 has-[:checked]:text-primary text-muted text-xs font-display font-bold transition-colors">
+<span>USD</span>
+<input checked="" class="invisible w-0" name="currency-toggle" type="radio" value="USD"/>
+</label>
+<label class="flex cursor-pointer h-full items-center justify-center rounded-md px-3 has-[:checked]:bg-primary/20 has-[:checked]:text-primary text-muted text-xs font-display font-bold transition-colors">
+<span>Bs</span>
+<input class="invisible w-0" name="currency-toggle" type="radio" value="Bs"/>
+</label>
+<label class="flex cursor-pointer h-full items-center justify-center rounded-md px-3 has-[:checked]:bg-primary/20 has-[:checked]:text-primary text-muted text-xs font-display font-bold transition-colors">
+<span>USDT</span>
+<input class="invisible w-0" name="currency-toggle" type="radio" value="USDT"/>
+</label>
+</div>
+</div>
+<div class="relative z-10">
+<p class="text-sm font-medium text-muted mb-1">Patrimonio Neto Total</p>
+<div class="flex items-baseline gap-2">
+<h3 class="font-mono-data text-4xl md:text-5xl font-medium tracking-tight text-white">$12,450.00</h3>
+</div>
+<div class="mt-4 flex items-center gap-2 text-sm">
+<span class="flex items-center rounded-full bg-primary/20 px-2 py-0.5 text-primary">
+<span class="material-symbols-outlined text-[14px]">trending_up</span>
+<span class="ml-1 font-mono-data">+2.4%</span>
+</span>
+<span class="text-muted">vs mes anterior</span>
+</div>
+</div>
+<!-- Decorative blur -->
+<div class="absolute -bottom-10 -right-10 h-32 w-32 rounded-full bg-primary/20 blur-3xl transition-opacity group-hover:opacity-100 opacity-50"></div>
+</div>
+<!-- Inflows/Outflows -->
+<div class="flex flex-col gap-4">
+<div class="glass-panel p-5 flex-1 hover-glow-primary">
+<p class="text-xs font-medium text-muted mb-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-primary">arrow_downward</span>
+                  Ingresos (Mes)
+                </p>
+<p class="font-mono-data text-xl text-white">+$3,240.50</p>
+</div>
+<div class="glass-panel p-5 flex-1 hover:border-danger/30 hover:shadow-[0_0_20px_rgba(255,71,87,0.15)] transition-all">
+<p class="text-xs font-medium text-muted mb-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-danger">arrow_upward</span>
+                  Egresos (Mes)
+                </p>
+<p class="font-mono-data text-xl text-white">-$1,120.00</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Sidebar: Exchange Rates -->
+<div class="w-full xl:w-80 space-y-4">
+<div class="glass-panel p-5 hover-glow-accent">
+<div class="flex items-center justify-between mb-4">
+<h3 class="font-display text-sm font-bold text-white flex items-center gap-2">
+<span class="material-symbols-outlined text-accent">currency_exchange</span>
+                Tasas de Cambio
+              </h3>
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+</span>
+</div>
+<div class="space-y-3">
+<!-- Parallel Rate -->
+<div class="rounded-lg bg-black/40 p-3 border border-white/5">
+<div class="flex justify-between items-center mb-1">
+<span class="text-xs font-medium text-muted">Paralelo</span>
+<span class="text-[10px] text-muted flex items-center text-primary">
+<span class="material-symbols-outlined text-[12px]">arrow_upward</span> 0.5%
+                  </span>
+</div>
+<div class="font-mono-data text-lg text-white">37.45 <span class="text-sm text-muted">Bs/$</span></div>
+</div>
+<!-- BCV Rate -->
+<div class="rounded-lg bg-black/40 p-3 border border-white/5">
+<div class="flex justify-between items-center mb-1">
+<span class="text-xs font-medium text-muted">BCV</span>
+<span class="text-[10px] text-muted flex items-center text-primary">
+<span class="material-symbols-outlined text-[12px]">arrow_upward</span> 0.1%
+                  </span>
+</div>
+<div class="font-mono-data text-lg text-white">35.12 <span class="text-sm text-muted">Bs/$</span></div>
+</div>
+</div>
+<button class="mt-4 w-full rounded-lg bg-accent/10 py-2 text-center font-display text-xs font-semibold text-accent hover:bg-accent/20 transition-colors">
+              Abrir Calculadora (Cmd+K)
+            </button>
+</div>
+</div>
+</div>
+<!-- Chart Area (Placeholder) -->
+<div class="glass-panel p-6 h-64 flex flex-col justify-center items-center relative overflow-hidden group">
+<div class="absolute inset-0 bg-gradient-to-t from-accent/5 to-transparent opacity-50"></div>
+<!-- Fake Chart Lines using SVGs / CSS for aesthetics -->
+<div class="absolute inset-0 flex items-end px-6 pb-6 pt-16 gap-2 opacity-30">
+<div class="w-full h-[40%] bg-gradient-to-t from-primary/40 to-transparent rounded-t-sm"></div>
+<div class="w-full h-[60%] bg-gradient-to-t from-primary/40 to-transparent rounded-t-sm"></div>
+<div class="w-full h-[30%] bg-gradient-to-t from-primary/40 to-transparent rounded-t-sm"></div>
+<div class="w-full h-[80%] bg-gradient-to-t from-primary/40 to-transparent rounded-t-sm"></div>
+<div class="w-full h-[50%] bg-gradient-to-t from-primary/40 to-transparent rounded-t-sm"></div>
+<div class="w-full h-[90%] bg-gradient-to-t from-primary/40 to-transparent rounded-t-sm"></div>
+<div class="w-full h-[70%] bg-gradient-to-t from-primary/40 to-transparent rounded-t-sm"></div>
+</div>
+<div class="relative z-10 text-center">
+<p class="font-display text-muted text-sm flex items-center gap-2">
+<span class="material-symbols-outlined">bar_chart</span>
+              Gráfico de Flujo de Caja (Cargando datos...)
+            </p>
+</div>
+</div>
+<!-- Recent Activity -->
+<div class="glass-panel overflow-hidden">
+<div class="border-b border-white/10 p-5 flex justify-between items-center">
+<h3 class="font-display text-lg font-bold text-white">Actividad Reciente</h3>
+<a class="text-sm text-accent hover:text-accent/80 font-medium" href="#">Ver todo</a>
+</div>
+<div class="divide-y divide-white/5">
+<!-- Transaction Row 1 -->
+<div class="flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors cursor-pointer group">
+<div class="flex items-center gap-4">
+<div class="h-10 w-10 rounded-full bg-[#3b82f6]/20 flex items-center justify-center text-[#3b82f6]">
+<span class="material-symbols-outlined text-[20px]">directions_car</span>
+</div>
+<div>
+<p class="text-sm font-medium text-white">Uber</p>
+<div class="flex items-center gap-2 text-xs text-muted">
+<span>Hoy, 14:30</span>
+<span class="h-1 w-1 rounded-full bg-white/20"></span>
+<span class="px-1.5 py-0.5 rounded bg-white/5 text-[10px]">Transporte</span>
+</div>
+</div>
+</div>
+<div class="text-right">
+<p class="font-mono-data text-sm font-medium text-danger">-$12.50</p>
+<p class="font-mono-data text-xs text-muted">439.37 Bs</p>
+</div>
+</div>
+<!-- Transaction Row 2 -->
+<div class="flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors cursor-pointer group">
+<div class="flex items-center gap-4">
+<div class="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">payments</span>
+</div>
+<div>
+<p class="text-sm font-medium text-white">Pago Freelance (Upwork)</p>
+<div class="flex items-center gap-2 text-xs text-muted">
+<span>Ayer, 09:15</span>
+<span class="h-1 w-1 rounded-full bg-white/20"></span>
+<span class="px-1.5 py-0.5 rounded bg-white/5 text-[10px]">Ingresos</span>
+</div>
+</div>
+</div>
+<div class="text-right">
+<p class="font-mono-data text-sm font-medium text-primary">+$450.00</p>
+<p class="font-mono-data text-xs text-muted">450.00 USDT</p>
+</div>
+</div>
+<!-- Transaction Row 3 -->
+<div class="flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors cursor-pointer group">
+<div class="flex items-center gap-4">
+<div class="h-10 w-10 rounded-full bg-[#eab308]/20 flex items-center justify-center text-[#eab308]">
+<span class="material-symbols-outlined text-[20px]">restaurant</span>
+</div>
+<div>
+<p class="text-sm font-medium text-white">Café y Empanadas</p>
+<div class="flex items-center gap-2 text-xs text-muted">
+<span>Ayer, 08:00</span>
+<span class="h-1 w-1 rounded-full bg-white/20"></span>
+<span class="px-1.5 py-0.5 rounded bg-white/5 text-[10px]">Comida</span>
+</div>
+</div>
+</div>
+<div class="text-right">
+<p class="font-mono-data text-sm font-medium text-danger">-140.00 Bs</p>
+<p class="font-mono-data text-xs text-muted">~$3.94</p>
+</div>
+</div>
+<!-- Transaction Row 4 -->
+<div class="flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors cursor-pointer group">
+<div class="flex items-center gap-4">
+<div class="h-10 w-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-500">
+<span class="material-symbols-outlined text-[20px]">shopping_bag</span>
+</div>
+<div>
+<p class="text-sm font-medium text-white">Suscripción Netflix</p>
+<div class="flex items-center gap-2 text-xs text-muted">
+<span>12 Oct, 10:00</span>
+<span class="h-1 w-1 rounded-full bg-white/20"></span>
+<span class="px-1.5 py-0.5 rounded bg-white/5 text-[10px]">Entretenimiento</span>
+</div>
+</div>
+</div>
+<div class="text-right">
+<p class="font-mono-data text-sm font-medium text-danger">-$10.99</p>
+<p class="font-mono-data text-xs text-muted">10.99 USDT</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Floating Action Button -->
+<button class="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-background-dark shadow-[0_0_20px_rgba(0,245,160,0.4)] transition-transform hover:scale-105 hover:shadow-[0_0_25px_rgba(0,245,160,0.6)] md:bottom-8 md:right-8">
+<span class="material-symbols-outlined text-[28px]">add</span>
+</button>
+</body></html>

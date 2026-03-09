@@ -1,65 +1,91 @@
-import Image from "next/image";
+import { KPICard } from "@/components/dashboard/KPICard";
+import { RatesWidget } from "@/components/dashboard/RatesWidget";
+import { WeeklyBarChart } from "@/components/dashboard/Charts/WeeklyBarChart";
+import { useState } from "react";
+import { AlertTriangle, Repeat } from "lucide-react";
+import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
+import { Wallet, PiggyBank, Target } from "lucide-react";
 
 export default function Home() {
+  const [currency, setCurrency] = useState<"USD" | "VES">("USD");
+
+  // Mock balances (will come from store/supabase later)
+  const balances = {
+    USD: 1250.75,
+    VES: 4500.50
+  };
+
+  const currentBalance = balances[currency];
+  const isLowBalance = currentBalance < 50; // Threshold for low balance
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="pb-24 pt-2 space-y-4">
+      <header className="relative">
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-xl font-mono tracking-tighter uppercase font-bold text-muted-foreground">
+              Tus Churupitos son...
+            </h1>
+            <p className="font-mono text-xs mt-0.5 mb-2">
+              Sincronizado.
+            </p>
+          </div>
+          <button
+            onClick={() => setCurrency(c => c === "USD" ? "VES" : "USD")}
+            className="flex items-center space-x-1 bg-black/5 hover:bg-black/10 transition-colors px-2 py-1 rounded-full text-xs font-mono font-bold"
+          >
+            <Repeat className="w-3 h-3" />
+            <span>{currency}</span>
+          </button>
+        </div>
+      </header>
+
+      {/* Low Balance Warning */}
+      {isLowBalance && (
+        <div className="bg-error/10 text-error border border-error/20 p-2 rounded-lg flex items-center justify-center space-x-2 animate-in fade-in slide-in-from-top-2">
+          <AlertTriangle className="w-4 h-4" />
+          <span className="font-mono text-xs uppercase font-bold tracking-tight">
+            ¡Te estás quedando sin churupitos!
+          </span>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-1.5">
+        <KPICard
+          title={`Total Balance (${currency})`}
+          amount={currentBalance}
+          currencyPrefix={currency === "USD" ? "$" : "Bs."}
+          className="col-span-2 rounded-2xl"
+          icon={Wallet}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+        <KPICard
+          title="Ingresos"
+          amount={850.00}
+          currencyPrefix="$"
+          icon={Target}
+          trend={12}
+          className="rounded-xl"
+        />
+        <KPICard
+          title="Gastos"
+          amount={342.25}
+          currencyPrefix="$"
+          icon={Wallet}
+          trend={-5}
+          className="rounded-xl"
+        />
+      </div>
+
+      <RatesWidget />
+
+      <div className="pt-2">
+        <h2 className="text-sm font-mono tracking-tight text-muted-foreground uppercase mb-2">
+          Análisis de Movimientos
+        </h2>
+        <WeeklyBarChart />
+      </div>
+
+      <RecentTransactions />
     </div>
   );
 }

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Churupitos - Terminal Reports</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "primary": "#00f5a0",
+          "background-light": "#f6f8f7",
+          "background-dark": "#0a0a1a",
+          "surface": "rgba(255, 255, 255, 0.03)",
+          "accent": "#7c3aed",
+          "danger": "#ff003c",
+          "muted": "#4b5563"
+        },
+        fontFamily: {
+          "display": ["Space Grotesk", "sans-serif"],
+          "heading": ["Orbitron", "sans-serif"],
+          "mono": ["Fira Code", "monospace"]
+        },
+        borderRadius: {"DEFAULT": "4px", "sm": "2px", "lg": "8px", "xl": "12px", "full": "9999px"},
+        backgroundImage: {
+          'scanlines': 'linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2))'
+        }
+      },
+    },
+  }
+</script>
+<style>
+  body {
+    background-color: #0a0a1a;
+    color: #e2e8f0;
+    position: relative;
+  }
+  body::before {
+    content: " ";
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    z-index: 50;
+    background-size: 100% 2px, 3px 100%;
+    pointer-events: none;
+    opacity: 0.15;
+  }
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .glow-primary {
+    box-shadow: 0 0 10px rgba(0, 245, 160, 0.4);
+  }
+  .glow-primary-text {
+    text-shadow: 0 0 8px rgba(0, 245, 160, 0.6);
+  }
+  .glow-accent {
+    box-shadow: 0 0 15px rgba(124, 58, 237, 0.5);
+  }
+  .glow-danger {
+    box-shadow: 0 0 15px rgba(255, 0, 60, 0.5);
+  }
+  .grid-bg {
+    background-size: 40px 40px;
+    background-image: 
+      linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0a0a1a; 
+    border-left: 1px solid rgba(255,255,255,0.1);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #4b5563; 
+    border-radius: 0;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #00f5a0; 
+  }
+</style>
+</head>
+<body class="font-display min-h-screen flex flex-col bg-background-dark overflow-hidden">
+<!-- Top Navigation -->
+<header class="glass-panel flex items-center justify-between whitespace-nowrap px-6 py-3 border-b border-white/10 shrink-0 relative z-40">
+<div class="flex items-center gap-4">
+<div class="size-6 text-primary glow-primary-text">
+<svg fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M24 45.8096C19.6865 45.8096 15.4698 44.5305 11.8832 42.134C8.29667 39.7376 5.50128 36.3314 3.85056 32.3462C2.19985 28.361 1.76794 23.9758 2.60947 19.7452C3.451 15.5145 5.52816 11.6284 8.57829 8.5783C11.6284 5.52817 15.5145 3.45101 19.7452 2.60948C23.9758 1.76795 28.361 2.19986 32.3462 3.85057C36.3314 5.50129 39.7376 8.29668 42.134 11.8833C44.5305 15.4698 45.8096 19.6865 45.8096 24L24 24L24 45.8096Z" fill="currentColor"></path>
+</svg>
+</div>
+<h2 class="text-white text-xl font-heading font-bold tracking-widest uppercase">Churupitos</h2>
+<div class="h-6 w-px bg-white/20 mx-2"></div>
+<div class="flex items-center gap-6">
+<a class="text-muted hover:text-white font-mono text-sm uppercase tracking-wider transition-colors" href="#">Dashboard</a>
+<a class="text-muted hover:text-white font-mono text-sm uppercase tracking-wider transition-colors" href="#">Ledger</a>
+<a class="text-muted hover:text-white font-mono text-sm uppercase tracking-wider transition-colors" href="#">Buckets</a>
+<a class="text-primary glow-primary-text font-mono text-sm uppercase tracking-wider border-b border-primary pb-1" href="#">Terminal</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="font-mono text-xs text-muted flex items-center gap-2">
+<span class="inline-block size-2 bg-primary rounded-full glow-primary"></span>
+        SYS_ONLINE
+      </div>
+<div class="glass-panel px-3 py-1 flex items-center gap-3">
+<span class="font-mono text-xs text-muted">BASE:</span>
+<button class="font-mono text-xs text-primary">USD</button>
+<button class="font-mono text-xs text-muted hover:text-white">USDT</button>
+<button class="font-mono text-xs text-muted hover:text-white">Bs</button>
+</div>
+</div>
+</header>
+<!-- Main Content Layout -->
+<main class="flex-1 flex flex-col p-4 gap-4 overflow-hidden relative z-30">
+<!-- Title & Controls Pane -->
+<div class="flex justify-between items-end">
+<div>
+<h1 class="font-heading text-3xl font-bold text-white tracking-widest uppercase mb-1">Terminal Reports</h1>
+<p class="font-mono text-primary text-xs tracking-widest opacity-80">&gt; ADVANCED_DATA_VISUALIZATION // SECURE_CONNECTION_ESTABLISHED</p>
+</div>
+<!-- Filter Toolbar -->
+<div class="glass-panel p-2 flex gap-2">
+<div class="flex items-center gap-2 px-3 border-r border-white/10">
+<span class="material-symbols-outlined text-muted text-sm">calendar_today</span>
+<select class="bg-transparent border-none text-white font-mono text-xs focus:ring-0 cursor-pointer appearance-none">
+<option>LAST_30_DAYS</option>
+<option>YTD</option>
+<option>ALL_TIME</option>
+</select>
+</div>
+<div class="flex items-center gap-2 px-3 border-r border-white/10">
+<span class="material-symbols-outlined text-muted text-sm">filter_alt</span>
+<select class="bg-transparent border-none text-white font-mono text-xs focus:ring-0 cursor-pointer appearance-none">
+<option>ALL_ASSETS</option>
+<option>FIAT_ONLY</option>
+<option>CRYPTO_ONLY</option>
+</select>
+</div>
+<button class="px-4 py-1 text-xs font-heading font-bold uppercase text-background-dark bg-primary hover:bg-white transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">sync</span>
+          Execute
+        </button>
+</div>
+</div>
+<!-- Charts Split View -->
+<div class="flex-1 flex gap-4 min-h-0">
+<!-- Left Canvas: Cash Flow Line Chart -->
+<div class="flex-[3] glass-panel relative flex flex-col p-4">
+<div class="flex justify-between items-center mb-4">
+<h3 class="font-heading text-sm text-white tracking-widest">Net Cash Flow</h3>
+<div class="flex gap-4 font-mono text-xs">
+<div class="flex items-center gap-2">
+<span class="block w-4 h-1 bg-primary"></span>
+<span class="text-white">INCOME</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="block w-4 h-1 bg-danger"></span>
+<span class="text-white">EXPENSE</span>
+</div>
+</div>
+</div>
+<!-- Chart Area Mockup -->
+<div class="flex-1 grid-bg relative border-l border-b border-muted/50 mt-2">
+<!-- Y-Axis Labels -->
+<div class="absolute -left-12 top-0 bottom-0 flex flex-col justify-between font-mono text-[10px] text-muted text-right w-10 py-2">
+<span>2.5K</span>
+<span>2.0K</span>
+<span>1.5K</span>
+<span>1.0K</span>
+<span>0.5K</span>
+<span>0</span>
+</div>
+<!-- SVG Sharp Line Chart -->
+<svg class="absolute inset-0 w-full h-full" preserveaspectratio="none" viewbox="0 0 1000 400">
+<!-- Expense Line (Red) -->
+<polyline class="opacity-80" fill="none" points="0,350 100,380 200,200 300,280 400,150 500,300 600,250 700,100 800,220 900,180 1000,50" stroke="#ff003c" stroke-width="2"></polyline>
+<!-- Income Line (Green) -->
+<polyline class="glow-primary" fill="none" points="0,300 100,250 200,100 300,150 400,50 500,200 600,120 700,280 800,150 900,80 1000,20" stroke="#00f5a0" stroke-width="2"></polyline>
+<!-- Data Points Income -->
+<circle class="glow-primary cursor-crosshair" cx="200" cy="100" fill="#00f5a0" r="4"></circle>
+<circle class="glow-primary cursor-crosshair" cx="400" cy="50" fill="#00f5a0" r="4"></circle>
+<circle class="glow-primary cursor-crosshair" cx="700" cy="280" fill="#00f5a0" r="4"></circle>
+<circle class="glow-primary cursor-crosshair" cx="900" cy="80" fill="#00f5a0" r="4"></circle>
+</svg>
+<!-- X-Axis Labels -->
+<div class="absolute -bottom-6 left-0 right-0 flex justify-between font-mono text-[10px] text-muted px-2">
+<span>01/10</span>
+<span>05/10</span>
+<span>10/10</span>
+<span>15/10</span>
+<span>20/10</span>
+<span>25/10</span>
+<span>30/10</span>
+</div>
+<!-- Crosshair Overlay (Simulated Hover State) -->
+<div class="absolute top-0 bottom-0 w-px bg-primary/50 left-[40%]" style="pointer-events: none;"></div>
+<div class="absolute left-0 right-0 h-px bg-primary/50 top-[12.5%]" style="pointer-events: none;"></div>
+<!-- Tooltip Mockup -->
+<div class="absolute left-[41%] top-[5%] bg-black border border-primary p-2 z-10">
+<div class="font-mono text-[10px] text-muted mb-1">DATETIME: 15/10/2023 14:00</div>
+<div class="font-mono text-xs text-primary">VAL: +1,850.00 USD</div>
+<div class="font-mono text-xs text-danger">VAL: -600.00 USD</div>
+</div>
+</div>
+</div>
+<!-- Right Canvas: Radar Chart & Stats -->
+<div class="flex-[1] flex flex-col gap-4">
+<!-- Radar Chart Panel -->
+<div class="flex-1 glass-panel p-4 flex flex-col items-center justify-center relative">
+<h3 class="absolute top-4 left-4 font-heading text-sm text-white tracking-widest">Vector Analysis</h3>
+<div class="font-mono text-[10px] text-accent absolute top-4 right-4 border border-accent/30 px-2 py-0.5 bg-accent/10">CAT_DIST</div>
+<!-- Radar Chart Mockup -->
+<div class="relative w-48 h-48 mt-8">
+<svg class="w-full h-full" viewbox="0 0 200 200">
+<!-- Grid Web -->
+<polygon fill="none" points="100,20 180,60 180,140 100,180 20,140 20,60" stroke="rgba(255,255,255,0.1)" stroke-width="1"></polygon>
+<polygon fill="none" points="100,40 160,70 160,130 100,160 40,130 40,70" stroke="rgba(255,255,255,0.1)" stroke-width="1"></polygon>
+<polygon fill="none" points="100,60 140,80 140,120 100,140 60,120 60,80" stroke="rgba(255,255,255,0.1)" stroke-width="1"></polygon>
+<polygon fill="none" points="100,80 120,90 120,110 100,120 80,110 80,90" stroke="rgba(255,255,255,0.1)" stroke-width="1"></polygon>
+<!-- Axes -->
+<line stroke="rgba(255,255,255,0.1)" stroke-width="1" x1="100" x2="100" y1="100" y2="20"></line>
+<line stroke="rgba(255,255,255,0.1)" stroke-width="1" x1="100" x2="180" y1="100" y2="60"></line>
+<line stroke="rgba(255,255,255,0.1)" stroke-width="1" x1="100" x2="180" y1="100" y2="140"></line>
+<line stroke="rgba(255,255,255,0.1)" stroke-width="1" x1="100" x2="100" y1="100" y2="180"></line>
+<line stroke="rgba(255,255,255,0.1)" stroke-width="1" x1="100" x2="20" y1="100" y2="140"></line>
+<line stroke="rgba(255,255,255,0.1)" stroke-width="1" x1="100" x2="20" y1="100" y2="60"></line>
+<!-- Data Polygon -->
+<polygon class="glow-accent" fill="rgba(124, 58, 237, 0.2)" points="100,40 150,70 130,120 100,170 50,110 70,60" stroke="#7c3aed" stroke-width="2"></polygon>
+</svg>
+<!-- Labels -->
+<span class="absolute -top-4 left-1/2 -translate-x-1/2 font-mono text-[10px] text-muted">LIVING</span>
+<span class="absolute top-[20%] -right-8 font-mono text-[10px] text-muted">CRYPTO</span>
+<span class="absolute bottom-[20%] -right-4 font-mono text-[10px] text-muted">OPS</span>
+<span class="absolute -bottom-4 left-1/2 -translate-x-1/2 font-mono text-[10px] text-muted">FIAT_CONV</span>
+<span class="absolute bottom-[20%] -left-8 font-mono text-[10px] text-muted">SAVINGS</span>
+<span class="absolute top-[20%] -left-10 font-mono text-[10px] text-muted">HARDWARE</span>
+</div>
+</div>
+<!-- Quick Stats Panel -->
+<div class="h-1/3 glass-panel p-4 flex flex-col justify-between">
+<h3 class="font-heading text-sm text-white tracking-widest border-b border-white/10 pb-2 mb-2">Metrics_Summary</h3>
+<div class="flex justify-between items-end">
+<span class="font-mono text-xs text-muted">BURN_RATE (30D)</span>
+<span class="font-mono text-sm text-danger">-450.20 USD/wk</span>
+</div>
+<div class="flex justify-between items-end">
+<span class="font-mono text-xs text-muted">SAVINGS_VELOCITY</span>
+<span class="font-mono text-sm text-primary">+120.00 USD/wk</span>
+</div>
+<div class="flex justify-between items-end">
+<span class="font-mono text-xs text-muted">LARGEST_TX</span>
+<span class="font-mono text-sm text-white border-b border-white border-dashed">Tx_8992</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Command Line Input (Bottom) -->
+<div class="mt-2 glass-panel p-3 border-l-4 border-l-primary flex items-center gap-3">
+<span class="font-mono text-primary font-bold">&gt;</span>
+<input class="flex-1 bg-transparent border-none text-white font-mono text-sm focus:ring-0 placeholder:text-muted/70 p-0" placeholder="export --format csv --range YTD" type="text" value="export --format csv --range YTD"/>
+<div class="w-2 h-4 bg-primary animate-pulse"></div>
+<button class="ml-auto font-mono text-[10px] text-muted border border-muted/30 px-2 py-1 hover:text-white hover:border-white transition-colors uppercase">
+        Run Cmd
+      </button>
+</div>
+</main>
+</body></html>

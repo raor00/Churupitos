@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Churupitos - Terminal Reports</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#12e29a",
+                        "background-light": "#f6f8f7",
+                        "background-dark": "#0a0a1a",
+                        "surface": "rgba(255, 255, 255, 0.03)",
+                        "accent": "#7c3aed",
+                        "danger": "#ff003c",
+                        "muted": "#4b5563"
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "heading": ["Orbitron", "sans-serif"],
+                        "mono": ["Fira Code", "monospace"]
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                    backgroundImage: {
+                        'grid-pattern': "linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px)"
+                    },
+                    boxShadow: {
+                        'neon-primary': '0 0 10px rgba(18, 226, 154, 0.4), 0 0 20px rgba(18, 226, 154, 0.2)',
+                        'neon-accent': '0 0 10px rgba(124, 58, 237, 0.4), 0 0 20px rgba(124, 58, 237, 0.2)',
+                        'neon-danger': '0 0 10px rgba(255, 0, 60, 0.4), 0 0 20px rgba(255, 0, 60, 0.2)'
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: theme('colors.background-dark');
+            color: #e2e8f0;
+            position: relative;
+        }
+
+        /* Scanline Overlay */
+        body::before {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 50;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            opacity: 0.15;
+        }
+
+        .glass-panel {
+            background: theme('colors.surface');
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .cyber-border {
+            border: 1px solid theme('colors.primary');
+            box-shadow: theme('boxShadow.neon-primary');
+        }
+
+        /* Custom Scrollbar for a techy feel */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: theme('colors.background-dark');
+            border-left: 1px solid rgba(255,255,255,0.05);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: theme('colors.primary');
+            opacity: 0.5;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: theme('colors.primary');
+            box-shadow: theme('boxShadow.neon-primary');
+        }
+
+        /* Chart Grid Base */
+        .chart-canvas {
+            background-size: 40px 40px;
+            background-image: theme('backgroundImage.grid-pattern');
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* SVG Chart Lines */
+        .chart-line-income { stroke: theme('colors.primary'); stroke-width: 2; fill: none; filter: drop-shadow(0 0 5px rgba(18,226,154,0.5)); }
+        .chart-line-expense { stroke: theme('colors.danger'); stroke-width: 2; fill: none; filter: drop-shadow(0 0 5px rgba(255,0,60,0.5)); }
+        
+        .radar-polygon { fill: rgba(124, 58, 237, 0.1); stroke: theme('colors.accent'); stroke-width: 2; filter: drop-shadow(0 0 8px rgba(124,58,237,0.4)); }
+        .radar-grid { stroke: rgba(255,255,255,0.1); stroke-width: 1; fill: none; }
+        .radar-axis { stroke: rgba(255,255,255,0.2); stroke-width: 1; }
+
+        /* Crosshairs */
+        .crosshair { stroke: theme('colors.primary'); stroke-width: 1; stroke-dasharray: 4 4; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+        
+        /* Tooltip */
+        .cyber-tooltip {
+            position: absolute;
+            background: theme('colors.background-dark');
+            border: 1px solid theme('colors.primary');
+            padding: 8px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            box-shadow: theme('boxShadow.neon-primary');
+            z-index: 10;
+        }
+
+        /* Scanning Laser Animation */
+        @keyframes scan {
+            0% { left: -5%; }
+            100% { left: 105%; }
+        }
+        .laser-scan {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: theme('colors.primary');
+            box-shadow: theme('boxShadow.neon-primary');
+            animation: scan 3s linear infinite;
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        /* CLI Input Pulse */
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+        .cursor-blink { animation: blink 1s step-end infinite; }
+    </style>
+</head>
+<body class="font-display antialiased min-h-screen flex flex-col overflow-hidden">
+<!-- Sidebar & Layout Container -->
+<div class="relative flex h-screen w-full flex-row">
+<!-- SideNavBar -->
+<aside class="w-64 flex-shrink-0 border-r border-white/10 glass-panel flex flex-col justify-between z-10 relative">
+<div class="p-6 flex flex-col gap-8">
+<!-- Logo/Brand -->
+<div class="flex flex-col">
+<h1 class="font-heading text-2xl font-bold tracking-wider text-primary drop-shadow-[0_0_8px_rgba(18,226,154,0.5)]">CHURUPITOS</h1>
+<p class="font-mono text-xs text-muted">SYSTEM v1.0.4 // ONLINE</p>
+</div>
+<!-- Navigation -->
+<nav class="flex flex-col gap-2 font-mono text-sm">
+<a class="flex items-center gap-3 px-3 py-2 rounded-sm text-slate-300 hover:bg-primary/10 hover:text-primary transition-colors border border-transparent hover:border-primary/30" href="#">
+<span class="material-symbols-outlined">space_dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-sm text-slate-300 hover:bg-primary/10 hover:text-primary transition-colors border border-transparent hover:border-primary/30" href="#">
+<span class="material-symbols-outlined">list_alt</span>
+<span>Transactions</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-sm text-slate-300 hover:bg-primary/10 hover:text-primary transition-colors border border-transparent hover:border-primary/30" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+<span>Buckets</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-sm bg-primary/20 text-primary cyber-border relative overflow-hidden group" href="#">
+<div class="absolute inset-0 bg-primary/10 w-full transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-out"></div>
+<span class="material-symbols-outlined relative z-10">monitoring</span>
+<span class="relative z-10 font-bold">Terminal Reports</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-sm text-slate-300 hover:bg-primary/10 hover:text-primary transition-colors border border-transparent hover:border-primary/30" href="#">
+<span class="material-symbols-outlined">calculate</span>
+<span>Calculator</span>
+</a>
+</nav>
+</div>
+<!-- Bottom Status -->
+<div class="p-4 border-t border-white/10 font-mono text-xs text-muted flex flex-col gap-1">
+<div class="flex justify-between"><span>BCV</span> <span class="text-primary">35.40</span></div>
+<div class="flex justify-between"><span>PAR</span> <span class="text-danger">38.10</span></div>
+<div class="mt-2 text-center text-[10px] opacity-50">SECURE CONNECTION ESTABLISHED</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col min-w-0 relative h-screen">
+<!-- Top Header Bar -->
+<header class="h-16 border-b border-white/10 glass-panel flex items-center justify-between px-6 z-10 shrink-0">
+<div class="flex flex-col">
+<h2 class="font-heading text-xl font-bold text-white tracking-widest uppercase shadow-primary">Terminal Reports</h2>
+<p class="font-mono text-[10px] text-primary">ADVANCED ANALYTICS &amp; CASH FLOW VISUALIZATION</p>
+</div>
+<!-- Controls -->
+<div class="flex items-center gap-4 font-mono text-xs">
+<div class="flex bg-black/50 border border-white/10 rounded-sm p-1">
+<button class="px-3 py-1 bg-primary/20 text-primary border border-primary/50 rounded-sm">30D</button>
+<button class="px-3 py-1 text-slate-400 hover:text-slate-200">90D</button>
+<button class="px-3 py-1 text-slate-400 hover:text-slate-200">YTD</button>
+</div>
+<div class="flex bg-black/50 border border-white/10 rounded-sm p-1">
+<button class="px-3 py-1 bg-accent/20 text-accent border border-accent/50 rounded-sm">BASE: USD</button>
+<button class="px-3 py-1 text-slate-400 hover:text-slate-200">BASE: BS</button>
+</div>
+<button class="flex items-center gap-1 px-3 py-1.5 border border-white/20 hover:border-primary text-slate-300 hover:text-primary transition-colors rounded-sm bg-black/30">
+<span class="material-symbols-outlined text-[16px]">download</span> EXPORT
+                    </button>
+</div>
+</header>
+<!-- Dashboard Content (Split Pane) -->
+<div class="flex-1 overflow-y-auto p-6 flex flex-col gap-6 z-0 pb-24">
+<!-- Top Stats Row -->
+<div class="grid grid-cols-3 gap-6 shrink-0">
+<div class="glass-panel p-4 rounded-sm border-t-2 border-t-primary flex flex-col relative overflow-hidden group">
+<span class="font-mono text-xs text-muted mb-1">TOTAL INBOUND</span>
+<span class="font-heading text-2xl text-primary drop-shadow-[0_0_5px_rgba(18,226,154,0.5)]">$4,250.00</span>
+<span class="font-mono text-[10px] text-primary mt-2">+12.4% vs last period</span>
+<div class="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-8xl text-primary">trending_up</span>
+</div>
+</div>
+<div class="glass-panel p-4 rounded-sm border-t-2 border-t-danger flex flex-col relative overflow-hidden group">
+<span class="font-mono text-xs text-muted mb-1">TOTAL OUTBOUND</span>
+<span class="font-heading text-2xl text-danger drop-shadow-[0_0_5px_rgba(255,0,60,0.5)]">$2,840.50</span>
+<span class="font-mono text-[10px] text-danger mt-2">+5.2% vs last period</span>
+<div class="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-8xl text-danger">trending_down</span>
+</div>
+</div>
+<div class="glass-panel p-4 rounded-sm border-t-2 border-t-accent flex flex-col relative overflow-hidden group">
+<span class="font-mono text-xs text-muted mb-1">NET MARGIN</span>
+<span class="font-heading text-2xl text-accent drop-shadow-[0_0_5px_rgba(124,58,237,0.5)]">$1,409.50</span>
+<span class="font-mono text-[10px] text-accent mt-2">33.16% efficiency</span>
+<div class="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-8xl text-accent">account_balance</span>
+</div>
+</div>
+</div>
+<!-- Charts Area (Split) -->
+<div class="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[400px]">
+<!-- Cash Flow Line Chart -->
+<div class="lg:col-span-2 glass-panel rounded-sm flex flex-col border border-white/5 relative">
+<div class="p-4 border-b border-white/10 flex justify-between items-center bg-black/20">
+<h3 class="font-mono text-sm text-slate-200"><span class="text-primary">&gt;_</span> CASH FLOW VECLOCITY</h3>
+<div class="flex gap-4 font-mono text-[10px]">
+<div class="flex items-center gap-1"><div class="w-2 h-2 bg-primary shadow-neon-primary"></div> IN</div>
+<div class="flex items-center gap-1"><div class="w-2 h-2 bg-danger shadow-neon-danger"></div> OUT</div>
+</div>
+</div>
+<div class="flex-1 p-4 relative chart-canvas group" id="line-chart-container">
+<!-- Laser Scan Effect -->
+<div class="laser-scan"></div>
+<!-- SVG Grid & Lines (Simulated sharp angles) -->
+<svg class="overflow-visible" height="100%" preserveaspectratio="none" viewbox="0 0 800 300" width="100%">
+<!-- Horizontal Grid Lines -->
+<line stroke="rgba(255,255,255,0.05)" stroke-width="1" x1="0" x2="800" y1="50" y2="50"></line>
+<line stroke="rgba(255,255,255,0.05)" stroke-width="1" x1="0" x2="800" y1="150" y2="150"></line>
+<line stroke="rgba(255,255,255,0.05)" stroke-width="1" x1="0" x2="800" y1="250" y2="250"></line>
+<!-- Y Axis Labels -->
+<text fill="#4b5563" font-family="Fira Code" font-size="10" x="10" y="45">4k</text>
+<text fill="#4b5563" font-family="Fira Code" font-size="10" x="10" y="145">2k</text>
+<text fill="#4b5563" font-family="Fira Code" font-size="10" x="10" y="245">0</text>
+<!-- Income Line (Primary) Sharp -->
+<polyline class="chart-line-income" points="50,220 150,180 250,80 350,120 450,40 550,90 650,30 750,60"></polyline>
+<!-- Expense Line (Danger) Sharp -->
+<polyline class="chart-line-expense" points="50,240 150,230 250,200 350,150 450,190 550,160 650,210 750,180"></polyline>
+<!-- Data Points (Income) -->
+<rect fill="#12e29a" height="4" width="4" x="48" y="218"></rect>
+<rect fill="#12e29a" height="4" width="4" x="148" y="178"></rect>
+<rect fill="#12e29a" height="4" width="4" x="248" y="78"></rect>
+<rect fill="#12e29a" height="4" width="4" x="348" y="118"></rect>
+<rect fill="#12e29a" height="4" width="4" x="448" y="38"></rect>
+<rect fill="#12e29a" height="4" width="4" x="548" y="88"></rect>
+<rect fill="#12e29a" height="4" width="4" x="648" y="28"></rect>
+<rect fill="#12e29a" height="4" width="4" x="748" y="58"></rect>
+<!-- Crosshairs (Hidden by default, shown via hover logic if implemented, static for design) -->
+<line class="crosshair group-hover:opacity-50" x1="450" x2="450" y1="0" y2="300"></line>
+<line class="crosshair group-hover:opacity-50" x1="0" x2="800" y1="40" y2="40"></line>
+</svg>
+<!-- Tooltip (Simulated Active State) -->
+<div class="cyber-tooltip opacity-100 left-[50%] top-[10%] transform -translate-x-1/2 -translate-y-full mt-8 pointer-events-none">
+<div class="font-mono text-[10px] text-muted mb-1">2023-10-15</div>
+<div class="font-mono text-xs text-primary font-bold">IN: $3,200.00</div>
+<div class="font-mono text-xs text-danger font-bold">OUT: $1,100.00</div>
+</div>
+</div>
+</div>
+<!-- Category Radar Chart -->
+<div class="glass-panel rounded-sm flex flex-col border border-white/5 relative">
+<div class="p-4 border-b border-white/10 flex justify-between items-center bg-black/20">
+<h3 class="font-mono text-sm text-slate-200"><span class="text-accent">&gt;_</span> SPEND VECTOR</h3>
+</div>
+<div class="flex-1 p-4 flex items-center justify-center relative bg-black/30">
+<svg class="overflow-visible" height="100%" viewbox="0 0 300 300" width="100%">
+<!-- Background Radars -->
+<polygon class="radar-grid" points="150,50 236,100 236,200 150,250 64,200 64,100"></polygon>
+<polygon class="radar-grid" points="150,80 210,115 210,185 150,220 90,185 90,115"></polygon>
+<polygon class="radar-grid" points="150,110 184,130 184,170 150,190 116,170 116,130"></polygon>
+<!-- Axes -->
+<line class="radar-axis" x1="150" x2="150" y1="150" y2="50"></line>
+<line class="radar-axis" x1="150" x2="236" y1="150" y2="100"></line>
+<line class="radar-axis" x1="150" x2="236" y1="150" y2="200"></line>
+<line class="radar-axis" x1="150" x2="150" y1="150" y2="250"></line>
+<line class="radar-axis" x1="150" x2="64" y1="150" y2="200"></line>
+<line class="radar-axis" x1="150" x2="64" y1="150" y2="100"></line>
+<!-- Labels -->
+<text fill="#e2e8f0" font-family="Fira Code" font-size="10" text-anchor="middle" x="150" y="40">FOOD</text>
+<text fill="#e2e8f0" font-family="Fira Code" font-size="10" text-anchor="start" x="245" y="95">TRANSPORT</text>
+<text fill="#e2e8f0" font-family="Fira Code" font-size="10" text-anchor="start" x="245" y="210">TECH</text>
+<text fill="#e2e8f0" font-family="Fira Code" font-size="10" text-anchor="middle" x="150" y="265">HOUSING</text>
+<text fill="#e2e8f0" font-family="Fira Code" font-size="10" text-anchor="end" x="55" y="210">CRYPTO FEES</text>
+<text fill="#e2e8f0" font-family="Fira Code" font-size="10" text-anchor="end" x="55" y="95">MISC</text>
+<!-- Data Polygon (Accent Color) -->
+<polygon class="radar-polygon" points="150,70 200,120 180,190 150,160 90,170 110,110"></polygon>
+<!-- Data Points -->
+<circle cx="150" cy="70" fill="#7c3aed" r="3"></circle>
+<circle cx="200" cy="120" fill="#7c3aed" r="3"></circle>
+<circle cx="180" cy="190" fill="#7c3aed" r="3"></circle>
+<circle cx="150" cy="160" fill="#7c3aed" r="3"></circle>
+<circle cx="90" cy="170" fill="#7c3aed" r="3"></circle>
+<circle cx="110" cy="110" fill="#7c3aed" r="3"></circle>
+</svg>
+</div>
+</div>
+</div>
+</div>
+<!-- Command Line Input (Sticky Bottom) -->
+<div class="absolute bottom-0 left-0 w-full glass-panel border-t border-primary/30 z-20 h-16 flex items-center px-6">
+<div class="flex items-center w-full font-mono text-sm">
+<span class="text-primary mr-3 font-bold">&gt;_</span>
+<input class="flex-1 bg-transparent border-none outline-none text-primary placeholder-primary/40 focus:ring-0 focus:outline-none" placeholder="export --format csv" type="text" value=""/>
+<span class="cursor-blink w-2 h-4 bg-primary inline-block ml-1"></span>
+</div>
+<button class="ml-4 font-heading text-xs px-4 py-2 border border-primary text-primary hover:bg-primary/20 transition-colors shadow-neon-primary bg-black/50">
+                    EXECUTE
+                </button>
+</div>
+</main>
+</div>
+</body></html>

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Churupitos - FX Calculator Terminal</title>
+<!-- Google Fonts: Space Grotesk -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#12e29a",
+              "background-light": "#f6f8f7",
+              "background-dark": "#0a0a1a",
+              "surface": "rgba(255, 255, 255, 0.03)",
+              "surface-border": "rgba(255, 255, 255, 0.1)",
+              "primary-glow": "rgba(18, 226, 154, 0.4)",
+              "accent": "#7c3aed",
+              "danger": "#ff003c"
+            },
+            fontFamily: {
+              "display": ["Space Grotesk", "monospace"]
+            },
+            borderRadius: {
+              "DEFAULT": "0.125rem", 
+              "sm": "0.125rem",
+              "lg": "0.25rem", 
+              "xl": "0.5rem", 
+              "full": "0.75rem"
+            },
+            boxShadow: {
+              'neon-primary': '0 0 10px rgba(18, 226, 154, 0.4), 0 0 20px rgba(18, 226, 154, 0.2)',
+              'neon-accent': '0 0 15px rgba(124, 58, 237, 0.5)',
+              'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.37)'
+            },
+            backgroundImage: {
+              'scanline': 'linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1))'
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #0a0a1a;
+            position: relative;
+        }
+        
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-image: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1));
+            background-size: 100% 4px;
+            opacity: 0.05;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .glass-panel {
+            background-color: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .input-glow:focus {
+            box-shadow: 0 0 10px rgba(18, 226, 154, 0.3);
+            border-color: #12e29a;
+            outline: none;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(18, 226, 154, 0.3);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #12e29a;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display min-h-screen flex items-center justify-center p-6 overflow-hidden">
+<!-- Mock Background App Context (Blurred out) -->
+<div class="absolute inset-0 z-0 opacity-20 pointer-events-none flex flex-col p-8 gap-6 blur-sm">
+<div class="h-12 w-64 border border-primary/30 rounded bg-primary/5"></div>
+<div class="flex gap-6 h-48">
+<div class="flex-1 border border-surface-border rounded bg-surface"></div>
+<div class="flex-1 border border-surface-border rounded bg-surface"></div>
+<div class="flex-1 border border-surface-border rounded bg-surface"></div>
+</div>
+<div class="flex-1 border border-surface-border rounded bg-surface mt-6"></div>
+</div>
+<!-- Floating Calculator Terminal -->
+<div class="glass-panel w-full max-w-[440px] rounded-sm flex flex-col relative z-10 border-t-2 border-t-primary shadow-neon-primary animate-fade-in">
+<!-- Header / Drag Handle -->
+<div class="flex items-center justify-between px-4 py-3 border-b border-surface-border bg-black/40 cursor-move group">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">terminal</span>
+<h3 class="text-primary text-sm font-bold tracking-widest uppercase">&gt;_ UTILITY // FX_CALCULATOR</h3>
+</div>
+<div class="flex items-center gap-3">
+<button class="text-slate-400 hover:text-primary transition-colors focus:outline-none">
+<span class="material-symbols-outlined text-lg">minimize</span>
+</button>
+<button class="text-slate-400 hover:text-danger transition-colors focus:outline-none">
+<span class="material-symbols-outlined text-lg">close</span>
+</button>
+</div>
+</div>
+<!-- Live Rates Ticker -->
+<div class="px-5 py-2 bg-primary/5 border-b border-surface-border flex justify-between items-center text-xs tracking-wider">
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_5px_#12e29a]"></span>
+<span class="text-slate-400">LIVE SYNC</span>
+</div>
+<div class="flex gap-4 font-medium">
+<span class="text-slate-300">BCV: <span class="text-primary">35.40</span></span>
+<span class="text-slate-500">|</span>
+<span class="text-slate-300">PARALELO: <span class="text-danger">38.10</span></span>
+</div>
+</div>
+<div class="p-5 flex flex-col gap-6">
+<!-- Source Input -->
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-end">
+<label class="text-slate-400 text-xs font-semibold tracking-widest uppercase">Source Amount</label>
+</div>
+<div class="relative flex">
+<input autofocus="" class="form-input flex-1 bg-black/50 border border-surface-border rounded-l-sm text-white text-2xl font-medium h-14 pl-4 pr-16 input-glow transition-all font-display placeholder:text-slate-700 focus:ring-0" placeholder="0.00" type="text" value="150.00"/>
+<div class="absolute right-24 top-0 bottom-0 flex items-center pointer-events-none">
+<span class="text-primary font-bold">Bs</span>
+</div>
+<!-- Currency Selector Dropdown (Simulated) -->
+<button class="w-24 bg-surface border border-l-0 border-surface-border rounded-r-sm h-14 flex items-center justify-between px-3 hover:bg-surface-border transition-colors focus:outline-none focus:border-primary">
+<span class="text-slate-200 font-bold tracking-wide">Bs</span>
+<span class="material-symbols-outlined text-slate-400">expand_more</span>
+</button>
+</div>
+</div>
+<!-- Swap Action -->
+<div class="flex justify-center -my-3 relative z-10">
+<button class="w-8 h-8 rounded-full bg-[#151525] border border-surface-border flex items-center justify-center text-slate-400 hover:text-primary hover:border-primary hover:shadow-[0_0_10px_rgba(18,226,154,0.3)] transition-all focus:outline-none">
+<span class="material-symbols-outlined text-sm">swap_vert</span>
+</button>
+</div>
+<!-- Output Displays -->
+<div class="flex flex-col gap-4 border border-surface-border rounded-sm p-4 bg-black/20">
+<label class="text-slate-400 text-xs font-semibold tracking-widest uppercase flex items-center gap-2">
+<span class="material-symbols-outlined text-[14px]">output</span>
+                    Target Conversions
+                </label>
+<!-- USD Output -->
+<div class="flex justify-between items-center group">
+<div class="flex items-center gap-3">
+<div class="w-8 text-slate-500 font-bold tracking-wider">USD</div>
+<div class="text-xl text-primary font-bold group-hover:drop-shadow-[0_0_8px_rgba(18,226,154,0.5)] transition-all">
+                            3.93 <span class="text-sm text-primary/70 font-normal ml-1">@ Paralelo</span>
+</div>
+</div>
+<button class="text-slate-600 hover:text-primary focus:outline-none">
+<span class="material-symbols-outlined text-sm">content_copy</span>
+</button>
+</div>
+<div class="h-px w-full bg-surface-border/50"></div>
+<!-- USDT Output -->
+<div class="flex justify-between items-center group">
+<div class="flex items-center gap-3">
+<div class="w-8 text-accent font-bold tracking-wider">USDT</div>
+<div class="text-xl text-slate-200 font-bold group-hover:text-white transition-all">
+                            3.91 <span class="text-sm text-slate-500 font-normal ml-1">Binance P2P</span>
+</div>
+</div>
+<button class="text-slate-600 hover:text-primary focus:outline-none">
+<span class="material-symbols-outlined text-sm">content_copy</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Footer Actions -->
+<div class="px-5 py-4 border-t border-surface-border bg-black/40 flex gap-3 rounded-b-sm">
+<button class="flex-1 py-2.5 px-4 bg-transparent border border-surface-border text-slate-300 rounded-sm text-sm font-bold tracking-wider uppercase hover:bg-surface hover:text-white transition-colors focus:outline-none focus:border-primary">
+                Clear
+            </button>
+<button class="flex-[2] py-2.5 px-4 bg-primary/10 border border-primary text-primary rounded-sm text-sm font-bold tracking-wider uppercase hover:bg-primary hover:text-background-dark hover:shadow-neon-primary transition-all focus:outline-none flex justify-center items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">add_box</span>
+                Log TX
+            </button>
+</div>
+</div>
+</body></html>

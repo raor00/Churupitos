@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Churupitos - Buckets</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#12e29a",
+                        "background-light": "#f6f8f7",
+                        "background-dark": "#0a0a1a",
+                        "surface": "rgba(255, 255, 255, 0.03)",
+                        "accent": "#7c3aed",
+                        "danger": "#ff003c"
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "mono": ["Fira Code", "monospace"]
+                    },
+                    borderRadius: { "DEFAULT": "0.125rem", "sm": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                    boxShadow: {
+                        'neon-primary': '0 0 10px rgba(18, 226, 154, 0.4), 0 0 20px rgba(18, 226, 154, 0.2)',
+                        'neon-accent': '0 0 15px rgba(124, 58, 237, 0.5)',
+                        'neon-accent-hover': '0 0 20px rgba(124, 58, 237, 0.8)'
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: #0a0a1a;
+            color: #e2e8f0;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 4px;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .bucket-card {
+            border-top: 2px solid theme('colors.accent');
+            transition: all 0.3s ease;
+        }
+
+        .bucket-card:hover {
+            box-shadow: theme('boxShadow.neon-accent-hover');
+            border-color: theme('colors.primary');
+        }
+
+        .bucket-card:hover .hover-meta {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .hover-meta {
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+        }
+
+        .progress-segment {
+            background: rgba(255, 255, 255, 0.1);
+            height: 8px;
+            flex: 1;
+            border-radius: 1px;
+            margin-right: 2px;
+        }
+        .progress-segment:last-child {
+            margin-right: 0;
+        }
+        .progress-segment.filled {
+            background: theme('colors.primary');
+            box-shadow: theme('boxShadow.neon-primary');
+        }
+        
+        .btn-fund {
+            border: 1px solid theme('colors.accent');
+            color: theme('colors.accent');
+            transition: all 0.2s ease;
+        }
+        .btn-fund:hover {
+            background: rgba(124, 58, 237, 0.1);
+            box-shadow: theme('boxShadow.neon-accent');
+            color: #fff;
+        }
+
+        .empty-bucket {
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        .empty-bucket:hover {
+            border-color: theme('colors.primary');
+            box-shadow: theme('boxShadow.neon-primary');
+            background: rgba(18, 226, 154, 0.05);
+        }
+        
+        /* Custom scrollbar for masonry if needed */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0a1a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: theme('colors.primary');
+        }
+    </style>
+</head>
+<body class="font-display antialiased min-h-screen flex selection:bg-primary selection:text-background-dark">
+<!-- Sidebar -->
+<aside class="w-64 glass-panel border-r border-white/10 flex flex-col h-screen sticky top-0 shrink-0 z-20">
+<div class="p-6">
+<h1 class="text-white text-xl font-bold tracking-wider" style="font-family: 'Orbitron', sans-serif; text-shadow: 0 0 10px rgba(18, 226, 154, 0.5);">CHURUPITOS</h1>
+<p class="text-primary text-xs font-mono mt-1 opacity-80">&gt; SYS.ADMIN</p>
+</div>
+<nav class="flex-1 px-4 py-4 space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 rounded-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors group" href="#">
+<span class="material-symbols-outlined text-lg opacity-70 group-hover:opacity-100 group-hover:text-primary transition-colors">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors group" href="#">
+<span class="material-symbols-outlined text-lg opacity-70 group-hover:opacity-100 group-hover:text-primary transition-colors">receipt_long</span>
+<span class="text-sm font-medium">Transactions</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-sm bg-primary/10 text-white border-l-2 border-primary shadow-[inset_0_0_10px_rgba(18,226,154,0.1)]" href="#">
+<span class="material-symbols-outlined text-lg text-primary" style="text-shadow: 0 0 8px rgba(18, 226, 154, 0.8);">inventory_2</span>
+<span class="text-sm font-bold text-primary">Buckets</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors group" href="#">
+<span class="material-symbols-outlined text-lg opacity-70 group-hover:opacity-100 group-hover:text-primary transition-colors">terminal</span>
+<span class="text-sm font-medium">Terminal Reports</span>
+</a>
+</nav>
+<div class="p-4 border-t border-white/10">
+<div class="flex items-center justify-between text-xs font-mono text-slate-400">
+<span>SYS_STATUS:</span>
+<span class="text-primary flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-primary shadow-neon-primary animate-pulse"></span> ONLINE</span>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 p-8 lg:p-12 overflow-y-auto min-h-screen">
+<!-- Header Section -->
+<header class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div>
+<h2 class="text-3xl md:text-4xl font-bold text-white tracking-tight uppercase" style="font-family: 'Orbitron', sans-serif;">Buckets // Active Targets</h2>
+<div class="mt-2 flex items-center gap-3 font-mono text-sm">
+<span class="text-slate-400">TOTAL ALLOCATED:</span>
+<span class="text-primary font-bold tracking-wider" style="text-shadow: 0 0 8px rgba(18, 226, 154, 0.5);">1,050.00 USD</span>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="glass-panel px-4 py-2 rounded-sm flex items-center gap-2 font-mono text-xs text-slate-300">
+<span class="material-symbols-outlined text-[16px]">sync</span>
+<span>RATES AUTO-SYNCED</span>
+</div>
+</div>
+</header>
+<!-- Masonry Grid -->
+<div class="columns-1 md:columns-2 xl:columns-3 gap-6 space-y-6">
+<!-- Bucket Card 1: Emergency Fund -->
+<div class="glass-panel bucket-card rounded-sm p-6 relative overflow-hidden break-inside-avoid">
+<div class="flex justify-between items-start mb-6">
+<div>
+<h3 class="text-lg font-bold text-white mb-1 uppercase tracking-wider">Emergency Fund</h3>
+<span class="inline-block px-2 py-0.5 rounded-sm bg-white/5 text-[10px] font-mono text-slate-400 border border-white/10">SAFEGUARD</span>
+</div>
+<span class="material-symbols-outlined text-accent opacity-50">health_and_safety</span>
+</div>
+<div class="mb-4">
+<div class="flex justify-between items-end mb-2 font-mono">
+<div class="text-sm text-slate-400">CURRENT / TARGET</div>
+<div class="text-right">
+<span class="text-xl font-bold text-white">250.00</span>
+<span class="text-slate-500 text-sm"> / 1000.00 USD</span>
+</div>
+</div>
+<!-- Segmented Progress (25%) -->
+<div class="flex w-full mt-2">
+<div class="progress-segment filled"></div>
+<div class="progress-segment filled"></div>
+<div class="progress-segment filled"></div>
+<div class="progress-segment"></div>
+<div class="progress-segment"></div>
+<div class="progress-segment"></div>
+<div class="progress-segment"></div>
+<div class="progress-segment"></div>
+<div class="progress-segment"></div>
+<div class="progress-segment"></div>
+<div class="progress-segment"></div>
+<div class="progress-segment"></div>
+</div>
+<div class="text-right mt-1 text-[10px] font-mono text-primary">25%</div>
+</div>
+<div class="flex justify-between items-center mt-6 pt-4 border-t border-white/5 relative">
+<div class="hover-meta absolute left-0 top-4">
+<p class="text-xs font-mono text-slate-400">
+<span class="text-accent">&gt;</span> Est. Completion:
+                            <br/><span class="text-white">Nov 2024</span> (Current Vel.)
+                        </p>
+</div>
+<button class="btn-fund ml-auto px-4 py-1.5 rounded-sm text-xs font-bold uppercase tracking-wider flex items-center gap-2 z-10 bg-[#0a0a1a]">
+<span class="material-symbols-outlined text-[14px]">add</span> FUND
+                    </button>
+</div>
+</div>
+<!-- Bucket Card 2: Hardware Upgrade -->
+<div class="glass-panel bucket-card rounded-sm p-6 relative overflow-hidden break-inside-avoid">
+<div class="flex justify-between items-start mb-6">
+<div>
+<h3 class="text-lg font-bold text-white mb-1 uppercase tracking-wider">Hardware Upgrade</h3>
+<span class="inline-block px-2 py-0.5 rounded-sm bg-white/5 text-[10px] font-mono text-slate-400 border border-white/10">WORKSTATION</span>
+</div>
+<span class="material-symbols-outlined text-accent opacity-50">memory</span>
+</div>
+<div class="mb-4">
+<div class="flex justify-between items-end mb-2 font-mono">
+<div class="text-sm text-slate-400">CURRENT / TARGET</div>
+<div class="text-right">
+<span class="text-xl font-bold text-white">800.00</span>
+<span class="text-slate-500 text-sm"> / 1500.00 USDT</span>
+</div>
+</div>
+<!-- Segmented Progress (~53%) -->
+<div class="flex w-full mt-2">
+<div class="progress-segment filled"></div>
+<div class="progress-segment filled"></div>
+<div class="progress-segment filled"></div>
+<div class="progress-segment filled"></div>
+<div class="progress-segment filled"></div>
+<div class="progress-segment filled"></div>
+<div class="progress-segment"></div>
+<div class="progress-segment"></div>
+<div class="progress-segment"></div>
+<div class="progress-segment"></div>
+<div class="progress-segment"></div>
+<div class="progress-segment"></div>
+</div>
+<div class="text-right mt-1 text-[10px] font-mono text-primary">53.3%</div>
+</div>
+<div class="flex justify-between items-center mt-6 pt-4 border-t border-white/5 relative">
+<div class="hover-meta absolute left-0 top-4">
+<p class="text-xs font-mono text-slate-400">
+<span class="text-accent">&gt;</span> Est. Completion:
+                            <br/><span class="text-white">Jul 2024</span> (Current Vel.)
+                        </p>
+</div>
+<button class="btn-fund ml-auto px-4 py-1.5 rounded-sm text-xs font-bold uppercase tracking-wider flex items-center gap-2 z-10 bg-[#0a0a1a]">
+<span class="material-symbols-outlined text-[14px]">add</span> FUND
+                    </button>
+</div>
+</div>
+<!-- Bucket Card 3: Q3 Taxes -->
+<div class="glass-panel bucket-card rounded-sm p-6 relative overflow-hidden break-inside-avoid">
+<div class="flex justify-between items-start mb-6">
+<div>
+<h3 class="text-lg font-bold text-white mb-1 uppercase tracking-wider">Q3 Taxes</h3>
+<span class="inline-block px-2 py-0.5 rounded-sm bg-white/5 text-[10px] font-mono text-slate-400 border border-white/10">OBLIGATION</span>
+</div>
+<span class="material-symbols-outlined text-accent opacity-50">account_balance</span>
+</div>
+<div class="mb-4">
+<div class="flex justify-between items-end mb-2 font-mono">
+<div class="text-sm text-slate-400">CURRENT / TARGET</div>
+<div class="text-right">
+<span class="text-xl font-bold text-white">0.00</span>
+<span class="text-slate-500 text-sm"> / 400.00 Bs.</span>
+</div>
+</div>
+<!-- Segmented Progress (0%) -->
+<div class="flex w-full mt-2">
+<div class="progress-segment"></div>
+<div class="progress-segment"></div>
+<div class="progress-segment"></div>
+<div class="progress-segment"></div>
+<div class="progress-segment"></div>
+<div class="progress-segment"></div>
+<div class="progress-segment"></div>
+<div class="progress-segment"></div>
+<div class="progress-segment"></div>
+<div class="progress-segment"></div>
+<div class="progress-segment"></div>
+<div class="progress-segment"></div>
+</div>
+<div class="text-right mt-1 text-[10px] font-mono text-slate-500">0.0%</div>
+</div>
+<div class="flex justify-between items-center mt-6 pt-4 border-t border-white/5 relative">
+<div class="hover-meta absolute left-0 top-4">
+<p class="text-xs font-mono text-danger">
+<span class="text-danger">&gt;</span> Warning:
+                            <br/><span>Funding Required</span>
+</p>
+</div>
+<button class="btn-fund ml-auto px-4 py-1.5 rounded-sm text-xs font-bold uppercase tracking-wider flex items-center gap-2 z-10 bg-[#0a0a1a]">
+<span class="material-symbols-outlined text-[14px]">add</span> FUND
+                    </button>
+</div>
+</div>
+<!-- Add New Bucket Card -->
+<button class="empty-bucket rounded-sm p-6 w-full h-[280px] flex flex-col items-center justify-center text-slate-400 group break-inside-avoid bg-transparent cursor-pointer">
+<div class="w-16 h-16 rounded-full border-2 border-slate-600 group-hover:border-primary flex items-center justify-center mb-4 transition-colors group-hover:shadow-neon-primary bg-white/5">
+<span class="material-symbols-outlined text-3xl group-hover:text-primary transition-colors">add</span>
+</div>
+<span class="font-mono text-sm tracking-widest group-hover:text-primary transition-colors">INITIALIZE NEW TARGET</span>
+<span class="font-mono text-xs opacity-50 mt-2 block">&gt; await input_</span>
+</button>
+</div>
+</main>
+</body></html>

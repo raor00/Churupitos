@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Transactions Terminal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#12e29a",
+                        "background-light": "#f6f8f7",
+                        "background-dark": "#0a0a1a",
+                        "surface": "rgba(255, 255, 255, 0.03)",
+                        "accent": "#7c3aed",
+                        "danger": "#ff003c",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk"]
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                    boxShadow: {
+                        'neon-primary': '0 0 10px rgba(18, 226, 154, 0.4), inset 0 0 5px rgba(18, 226, 154, 0.2)',
+                        'neon-accent': '0 0 15px rgba(124, 58, 237, 0.5)',
+                        'neon-danger': '0 0 10px rgba(255, 0, 60, 0.4)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: #0a0a1a;
+            color: #e2e8f0;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .tabular-data {
+            font-variant-numeric: tabular-nums;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="font-display h-screen flex flex-col overflow-hidden">
+<!-- Header / Nav -->
+<header class="h-16 border-b border-white/10 glass-panel flex items-center justify-between px-6 shrink-0 relative z-20">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary text-3xl">terminal</span>
+<h1 class="text-xl font-bold tracking-widest text-white">CHURUPITOS<span class="text-primary animate-pulse">_</span></h1>
+</div>
+<nav class="flex gap-6">
+<a class="text-slate-400 hover:text-primary transition-colors text-sm uppercase tracking-wider" href="#">Dashboard</a>
+<a class="text-primary font-bold text-sm uppercase tracking-wider relative" href="#">
+                Transactions
+                <span class="absolute -bottom-5 left-0 w-full h-0.5 bg-primary shadow-neon-primary"></span>
+</a>
+<a class="text-slate-400 hover:text-primary transition-colors text-sm uppercase tracking-wider" href="#">Buckets</a>
+<a class="text-slate-400 hover:text-primary transition-colors text-sm uppercase tracking-wider" href="#">Reports</a>
+</nav>
+<div class="flex items-center gap-4">
+<div class="text-right tabular-data">
+<div class="text-xs text-slate-400">BCV RATE</div>
+<div class="text-sm font-bold text-primary">35.40 Bs</div>
+</div>
+<div class="text-right tabular-data">
+<div class="text-xs text-slate-400">PARALLEL</div>
+<div class="text-sm font-bold text-danger">38.10 Bs</div>
+</div>
+</div>
+</header>
+<main class="flex-1 flex overflow-hidden relative">
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col p-6 overflow-y-auto relative scrollbar-hide">
+<!-- Controls Bar -->
+<div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+<!-- Search -->
+<div class="flex-1 min-w-[300px] max-w-md">
+<div class="relative glass-panel rounded flex items-center h-10 px-3 focus-within:border-primary focus-within:shadow-neon-primary transition-all">
+<span class="material-symbols-outlined text-slate-400 text-sm">search</span>
+<input class="w-full bg-transparent border-none text-sm text-white placeholder-slate-500 focus:ring-0 px-3 tabular-data uppercase" placeholder="QUERY LEDGER..." type="text"/>
+</div>
+</div>
+<!-- Master Currency Toggle -->
+<div class="glass-panel rounded p-1 flex items-center gap-1">
+<button class="px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded bg-primary/20 text-primary border border-primary shadow-neon-primary">BASE: USD</button>
+<button class="px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded text-slate-400 hover:text-white hover:bg-white/5 transition-colors">BASE: BS</button>
+<button class="px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded text-slate-400 hover:text-white hover:bg-white/5 transition-colors">BASE: USDT</button>
+</div>
+<!-- Add Button -->
+<button class="h-10 px-6 bg-primary text-background-dark font-bold text-sm tracking-wider uppercase rounded shadow-neon-primary hover:bg-white transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">add</span>
+                    New Entry
+                </button>
+</div>
+<!-- Ledger Table -->
+<div class="glass-panel rounded border border-white/10 flex-1 flex flex-col overflow-hidden">
+<!-- Table Header -->
+<div class="grid grid-cols-12 gap-4 p-4 border-b border-white/10 text-xs font-bold text-slate-400 uppercase tracking-wider bg-white/5">
+<div class="col-span-2">Timestamp</div>
+<div class="col-span-1">Asset</div>
+<div class="col-span-2 text-right">Amount (Orig)</div>
+<div class="col-span-2 text-right">Amount (USD)</div>
+<div class="col-span-2">Category</div>
+<div class="col-span-2">Tags</div>
+<div class="col-span-1 text-center">Receipt</div>
+</div>
+<!-- Table Body -->
+<div class="flex-1 overflow-y-auto scrollbar-hide">
+<!-- Row 1: Income (Expanded) -->
+<div class="group border-b border-white/5 border-l-2 border-l-primary bg-primary/5">
+<div class="grid grid-cols-12 gap-4 p-4 items-center text-sm cursor-pointer">
+<div class="col-span-2 tabular-data text-slate-300">2023-10-27 14:32</div>
+<div class="col-span-1">
+<span class="px-2 py-1 rounded text-xs bg-accent/20 text-accent border border-accent/50 font-bold">USDT</span>
+</div>
+<div class="col-span-2 text-right tabular-data text-primary font-bold">+ 1,500.00</div>
+<div class="col-span-2 text-right tabular-data text-primary font-bold">+ 1,500.00</div>
+<div class="col-span-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-slate-400">work</span>
+<span>Freelance</span>
+</div>
+<div class="col-span-2 flex flex-wrap gap-1">
+<span class="text-xs text-slate-400">#client-nexus</span>
+</div>
+<div class="col-span-1 text-center">
+<span class="material-symbols-outlined text-primary text-lg">description</span>
+</div>
+</div>
+<!-- Expanded Details -->
+<div class="p-4 bg-black/40 border-t border-white/5 grid grid-cols-3 gap-6 text-xs">
+<div>
+<div class="text-slate-500 mb-1 uppercase tracking-wider">Exchange Rate Log</div>
+<div class="tabular-data text-slate-300">1 USDT = 1 USD</div>
+<div class="tabular-data text-slate-500">BCV at time: 34.80 Bs</div>
+</div>
+<div>
+<div class="text-slate-500 mb-1 uppercase tracking-wider">Transaction ID</div>
+<div class="tabular-data text-slate-300">TX-9982-ACF-441</div>
+</div>
+<div class="flex justify-end items-center">
+<button class="px-4 py-2 border border-white/20 rounded hover:border-primary hover:text-primary transition-colors flex items-center gap-2 text-slate-300">
+<span class="material-symbols-outlined text-sm">download</span>
+                                    VIEW INVOICE
+                                </button>
+</div>
+</div>
+</div>
+<!-- Row 2: Expense -->
+<div class="group border-b border-white/5 border-l-2 border-l-transparent hover:border-l-primary hover:bg-white/5 transition-all">
+<div class="grid grid-cols-12 gap-4 p-4 items-center text-sm cursor-pointer">
+<div class="col-span-2 tabular-data text-slate-400">2023-10-27 09:15</div>
+<div class="col-span-1">
+<span class="px-2 py-1 rounded text-xs bg-white/10 text-white border border-white/20 font-bold">Bs</span>
+</div>
+<div class="col-span-2 text-right tabular-data text-danger font-bold">- 150.00</div>
+<div class="col-span-2 text-right tabular-data text-danger font-bold">- 4.23</div>
+<div class="col-span-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-slate-400">local_cafe</span>
+<span>Food &amp; Drink</span>
+</div>
+<div class="col-span-2 flex flex-wrap gap-1">
+<span class="text-xs text-slate-500">#coffee</span>
+</div>
+<div class="col-span-1 text-center">
+<span class="material-symbols-outlined text-slate-600 text-lg">description</span>
+</div>
+</div>
+</div>
+<!-- Row 3: Expense -->
+<div class="group border-b border-white/5 border-l-2 border-l-transparent hover:border-l-primary hover:bg-white/5 transition-all">
+<div class="grid grid-cols-12 gap-4 p-4 items-center text-sm cursor-pointer">
+<div class="col-span-2 tabular-data text-slate-400">2023-10-26 18:45</div>
+<div class="col-span-1">
+<span class="px-2 py-1 rounded text-xs bg-primary/20 text-primary border border-primary/50 font-bold">USD</span>
+</div>
+<div class="col-span-2 text-right tabular-data text-danger font-bold">- 45.00</div>
+<div class="col-span-2 text-right tabular-data text-danger font-bold">- 45.00</div>
+<div class="col-span-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-slate-400">router</span>
+<span>Utilities</span>
+</div>
+<div class="col-span-2 flex flex-wrap gap-1">
+<span class="text-xs text-slate-500">#internet</span>
+</div>
+<div class="col-span-1 text-center">
+<span class="material-symbols-outlined text-primary text-lg">description</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Floating Calculator Widget -->
+<div class="absolute top-6 right-6 w-72 glass-panel rounded border border-white/10 shadow-2xl z-30">
+<div class="p-3 border-b border-white/10 flex justify-between items-center bg-white/5">
+<div class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">calculate</span>
+                    Quick Convert
+                </div>
+<button class="text-slate-500 hover:text-white"><span class="material-symbols-outlined text-sm">close</span></button>
+</div>
+<div class="p-4">
+<div class="flex gap-2 mb-4">
+<div class="flex-1 bg-black/40 rounded border border-white/10 p-2 text-right tabular-data text-lg text-white">
+                        150.00
+                    </div>
+<select class="bg-white/10 border border-white/10 rounded text-xs text-white uppercase focus:ring-primary focus:border-primary">
+<option>Bs</option>
+<option>USD</option>
+</select>
+</div>
+<div class="flex items-center justify-center my-2 text-slate-500">
+<span class="material-symbols-outlined text-sm">arrow_downward</span>
+</div>
+<div class="flex gap-2 mb-4">
+<div class="flex-1 bg-primary/10 rounded border border-primary/30 p-2 text-right tabular-data text-lg text-primary shadow-neon-primary">
+                        4.23
+                    </div>
+<select class="bg-white/10 border border-white/10 rounded text-xs text-white uppercase focus:ring-primary focus:border-primary">
+<option>USD</option>
+<option>Bs</option>
+</select>
+</div>
+<div class="text-center text-[10px] text-slate-500 uppercase tabular-data mb-4">
+                    Using Parallel Rate: 38.10
+                </div>
+<div class="grid grid-cols-4 gap-2 text-sm tabular-data">
+<button class="bg-white/5 hover:bg-white/10 rounded py-2 border border-white/5">7</button>
+<button class="bg-white/5 hover:bg-white/10 rounded py-2 border border-white/5">8</button>
+<button class="bg-white/5 hover:bg-white/10 rounded py-2 border border-white/5">9</button>
+<button class="bg-white/5 hover:bg-white/10 rounded py-2 border border-white/5 text-primary">÷</button>
+<button class="bg-white/5 hover:bg-white/10 rounded py-2 border border-white/5">4</button>
+<button class="bg-white/5 hover:bg-white/10 rounded py-2 border border-white/5">5</button>
+<button class="bg-white/5 hover:bg-white/10 rounded py-2 border border-white/5">6</button>
+<button class="bg-white/5 hover:bg-white/10 rounded py-2 border border-white/5 text-primary">×</button>
+<button class="bg-white/5 hover:bg-white/10 rounded py-2 border border-white/5">1</button>
+<button class="bg-white/5 hover:bg-white/10 rounded py-2 border border-white/5">2</button>
+<button class="bg-white/5 hover:bg-white/10 rounded py-2 border border-white/5">3</button>
+<button class="bg-white/5 hover:bg-white/10 rounded py-2 border border-white/5 text-primary">-</button>
+<button class="bg-white/5 hover:bg-white/10 rounded py-2 border border-white/5">C</button>
+<button class="bg-white/5 hover:bg-white/10 rounded py-2 border border-white/5">0</button>
+<button class="bg-white/5 hover:bg-white/10 rounded py-2 border border-white/5">.</button>
+<button class="bg-white/5 hover:bg-white/10 rounded py-2 border border-white/5 text-primary">+</button>
+</div>
+</div>
+</div>
+</main>
+</body></html>
