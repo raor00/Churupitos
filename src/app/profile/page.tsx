@@ -109,7 +109,7 @@ export default function ProfilePage() {
     }[pinStep];
 
     return (
-        <div className="pb-28 pt-4 space-y-0 min-h-screen">
+        <div className="pb-safe pt-4 space-y-0 min-h-screen">
             {/* Header */}
             <header className="flex items-center space-x-3 mb-6">
                 {section === "main" ? (

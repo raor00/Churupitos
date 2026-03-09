@@ -112,7 +112,7 @@ export default function TransactionsListPage() {
     const periods: Period[] = ["all", "today", "yesterday", "7days", "month", "custom-month"];
 
     return (
-        <div className="pb-28 pt-4 space-y-4">
+        <div className="pb-safe pt-4 space-y-4">
             {/* Header */}
             <header className="flex items-center justify-between">
                 <div>

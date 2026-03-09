@@ -40,7 +40,7 @@ export default function NewBucketPage() {
     };
 
     return (
-        <div className="pb-28 pt-4">
+        <div className="pb-safe pt-4">
             <header className="flex items-center space-x-4 mb-8">
                 <Link href="/buckets" className="p-2 border border-black/10 rounded-full hover:bg-black/5 bg-white/50 backdrop-blur-sm transition-colors">
                     <ArrowLeft className="w-5 h-5" />

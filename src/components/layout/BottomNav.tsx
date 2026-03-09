@@ -56,7 +56,13 @@ export function BottomNav() {
 
     return (
         <>
-            <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm h-16 bg-white/40 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.05)] rounded-full z-50 px-2 flex items-center justify-around">
+            {/* Safe area spacer so content scrolls above the nav */}
+            <div className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none"
+                style={{ height: "calc(5rem + env(safe-area-inset-bottom))" }} />
+            <nav
+                className="fixed left-1/2 -translate-x-1/2 w-[90%] max-w-sm h-16 bg-white/40 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.05)] rounded-full z-50 px-2 flex items-center justify-around"
+                style={{ bottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
+            >
                 {/* Inicio — fixed */}
                 <Link
                     href="/"
@@ -141,7 +147,7 @@ export function BottomNav() {
                             {/* Handle */}
                             <div className="w-10 h-1 bg-black/10 rounded-full mx-auto mt-3 mb-1" />
 
-                            <div className="px-6 pt-3 pb-10">
+                            <div className="px-6 pt-3" style={{ paddingBottom: "calc(2.5rem + env(safe-area-inset-bottom))" }}>
                                 <div className="flex items-center justify-between mb-5">
                                     <h2 className="font-mono font-bold text-sm uppercase tracking-widest">Más opciones</h2>
                                     <button

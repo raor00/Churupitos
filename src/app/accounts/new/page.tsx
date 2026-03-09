@@ -127,7 +127,7 @@ export default function NewAccountPage() {
     };
 
     return (
-        <div className="pb-28 pt-4">
+        <div className="pb-safe pt-4">
             <header className="flex items-center space-x-4 mb-6">
                 <Link
                     href="/accounts"

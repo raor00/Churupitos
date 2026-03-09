@@ -76,4 +76,9 @@
   .paper-card {
     @apply bg-white shadow-sm border border-black/10;
   }
+
+  /* iPhone safe area bottom padding for page content */
+  .pb-safe {
+    padding-bottom: calc(7rem + env(safe-area-inset-bottom));
+  }
 }

@@ -280,7 +280,7 @@ export default function ImportPage() {
     };
 
     return (
-        <div className="pb-28 pt-4 space-y-6">
+        <div className="pb-safe pt-4 space-y-6">
             <header className="flex items-center space-x-4">
                 <Link href="/" className="p-2 border border-black/10 rounded-full hover:bg-black/5 bg-white/50 backdrop-blur-sm transition-colors">
                     <ArrowLeft className="w-5 h-5" />
