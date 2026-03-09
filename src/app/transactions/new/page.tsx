@@ -76,6 +76,7 @@ export default function NewTransactionWizard() {
     const [amountStr, setAmountStr] = useState("0");
     const [isCategorySheetOpen, setIsCategorySheetOpen] = useState(false);
     const [categorySearch, setCategorySearch] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const {
         register,
@@ -154,12 +155,10 @@ export default function NewTransactionWizard() {
             setAmountStr((prev) => (prev.length > 1 ? prev.slice(0, -1) : "0"));
             return;
         }
-
         if (val === ".") {
             if (!amountStr.includes(".")) setAmountStr((prev) => `${prev}.`);
             return;
         }
-
         setAmountStr((prev) => (prev === "0" ? val : `${prev}${val}`));
     };
 
@@ -172,30 +171,34 @@ export default function NewTransactionWizard() {
     };
 
     const onSubmit = async (data: TxFormValues) => {
-        if (!selectedAccount) return;
+        if (!selectedAccount || isSubmitting) return;
+        setIsSubmitting(true);
+        try {
+            const amountUSD = toUSD(data.amount, data.transaction_currency, rate);
+            const amountInVES = amountUSD * rate;
+            const rateType = ratesState.preferredRate === "bcv" ? "bcv" : "usdt";
 
-        const amountUSD = toUSD(data.amount, data.transaction_currency, rate);
-        const amountInVES = amountUSD * rate;
-        const rateType = ratesState.preferredRate === "bcv" ? "bcv" : "usdt";
+            await addTransaction({
+                type: txType,
+                description: data.description,
+                amount: data.amount,
+                currency: data.transaction_currency,
+                account_id: data.account_id,
+                amount_ves: amountInVES,
+                rate_used: rate,
+                rate_type: rateType,
+                category_id: data.category_id,
+                date: new Date().toISOString().split("T")[0],
+                notes: data.notes || undefined,
+            } as Parameters<typeof addTransaction>[0]);
 
-        await addTransaction({
-            type: txType,
-            description: data.description,
-            amount: data.amount,
-            currency: data.transaction_currency,
-            account_id: data.account_id,
-            amount_ves: amountInVES,
-            rate_used: rate,
-            rate_type: rateType,
-            category_id: data.category_id,
-            date: new Date().toISOString().split("T")[0],
-            notes: data.notes || undefined,
-        } as Parameters<typeof addTransaction>[0]);
+            if (txType === "expense") playExpenseSound();
+            else playIncomeSound();
 
-        if (txType === "expense") playExpenseSound();
-        else playIncomeSound();
-
-        router.push("/transactions");
+            router.push("/transactions");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const CategoryIcon = resolveIcon(getCategoryVisual(selectedCategory ?? { type: txType, name: SIN_CATEGORIA, icon: "CircleOff", color: "#6D7588" }).icon);
@@ -204,8 +207,9 @@ export default function NewTransactionWizard() {
         : getCategoryVisual({ type: txType, name: SIN_CATEGORIA, icon: "CircleOff", color: "#6D7588" });
 
     return (
-        <div className="pt-1 h-[calc(100dvh-9rem)] flex flex-col overflow-hidden">
-            <header className="flex items-center space-x-3 mb-3">
+        <div className="pt-1 pb-safe flex flex-col min-h-[calc(100dvh-9rem)]">
+            {/* Header */}
+            <header className="flex items-center space-x-3 mb-3 flex-shrink-0">
                 {step === 1 ? (
                     <Link
                         href="/"
@@ -226,7 +230,8 @@ export default function NewTransactionWizard() {
                 </h1>
             </header>
 
-            <div className="flex bg-black/5 p-1 rounded-xl mb-3 shadow-inner">
+            {/* Type toggle */}
+            <div className="flex bg-black/5 p-1 rounded-xl mb-3 shadow-inner flex-shrink-0">
                 {(["expense", "income"] as const).map((typeItem) => (
                     <button
                         key={typeItem}
@@ -245,32 +250,32 @@ export default function NewTransactionWizard() {
             </div>
 
             <AnimatePresence mode="wait">
+                {/* ── STEP 1: Amount + numpad ─────────────────────────────── */}
                 {step === 1 && (
                     <motion.div
                         key="step1"
                         initial={{ x: -20, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
                         exit={{ x: -20, opacity: 0 }}
-                        className="flex-1 min-h-0 flex flex-col"
+                        className="flex flex-col flex-1"
                     >
-                        <div className="text-center space-y-3 mb-3">
+                        {/* Amount display */}
+                        <div className="text-center space-y-2 mb-4">
                             <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
                                 ¿Cuánto dinero?
                             </p>
-
                             <div className="text-5xl leading-none font-mono tracking-tighter font-bold flex items-center justify-center w-full px-2">
                                 <span className="text-muted-foreground mr-1.5 opacity-60 text-2xl">
                                     {CURRENCY_SYMBOL[txCurrency]}
                                 </span>
                                 {amountStr}
                             </div>
-
-                            <div className="inline-flex gap-1 overflow-x-auto p-1 bg-black/5 rounded-full border border-black/5 max-w-full mx-auto">
+                            <div className="inline-flex gap-1 p-1 bg-black/5 rounded-full border border-black/5">
                                 {(["USD", "VES", "EUR", "USDT"] as const).map((curr) => (
                                     <button
                                         key={curr}
                                         onClick={() => setValue("transaction_currency", curr)}
-                                        className={`px-3.5 py-1.5 rounded-full font-mono text-xs font-bold transition-all ${
+                                        className={`px-3 py-1.5 rounded-full font-mono text-xs font-bold transition-all ${
                                             txCurrency === curr
                                                 ? "bg-foreground text-background shadow-md"
                                                 : "text-muted-foreground hover:bg-black/5"
@@ -282,156 +287,181 @@ export default function NewTransactionWizard() {
                             </div>
                         </div>
 
-                        <div className="w-full max-w-sm mx-auto grid grid-cols-3 gap-2">
+                        {/* Numpad — fixed key sizes, always visible */}
+                        <div className="grid grid-cols-3 gap-2 mb-3">
                             {[1, 2, 3, 4, 5, 6, 7, 8, 9, ".", 0, "delete"].map((key) => (
                                 <button
                                     key={key}
                                     onClick={() => handleNumpad(String(key))}
-                                    className="h-12 sm:h-14 rounded-2xl bg-white/60 backdrop-blur-sm border border-black/10 font-mono text-xl font-bold flex items-center justify-center hover:bg-black/5 active:bg-black/10 active:scale-95 transition-all shadow-sm"
+                                    className="h-14 rounded-2xl bg-white/60 backdrop-blur-sm border border-black/10 font-mono text-xl font-bold flex items-center justify-center hover:bg-black/5 active:bg-black/10 active:scale-95 transition-all shadow-sm"
                                 >
                                     {key === "delete" ? <Delete className="w-5 h-5 text-muted-foreground" /> : key}
                                 </button>
                             ))}
                         </div>
 
+                        {/* Continue button */}
                         <button
                             onClick={handleNextStep}
                             disabled={Number.parseFloat(amountStr) <= 0}
-                            className="w-full max-w-sm mx-auto mt-3 py-3.5 rounded-2xl bg-primary text-primary-foreground font-mono font-bold uppercase tracking-widest shadow-xl shadow-primary/20 flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors"
+                            className="w-full py-4 rounded-2xl bg-foreground text-background font-mono font-bold uppercase tracking-widest shadow-lg flex justify-center items-center gap-2 disabled:opacity-40 active:scale-[0.98] transition-all"
                         >
-                            Continuar <ArrowRight className="w-5 h-5 ml-2" />
+                            Continuar <ArrowRight className="w-5 h-5" />
                         </button>
                     </motion.div>
                 )}
 
+                {/* ── STEP 2: Details form ─────────────────────────────────── */}
                 {step === 2 && (
                     <motion.div
                         key="step2"
                         initial={{ x: 20, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
                         exit={{ x: 20, opacity: 0 }}
-                        className="flex-1 min-h-0"
+                        className="flex flex-col flex-1"
                     >
-                        <div className="paper-card p-4 rounded-2xl h-full">
-                            <form onSubmit={handleSubmit(onSubmit)} className="h-full flex flex-col gap-4">
-                                <div className="flex items-center justify-between border-b border-black/10 pb-3">
-                                    <span className="font-mono text-[10px] text-muted-foreground uppercase font-bold tracking-widest">
-                                        Monto
-                                    </span>
-                                    <span className="font-mono text-2xl font-bold tracking-tighter">
-                                        {CURRENCY_SYMBOL[txCurrency]} {amountStr}
-                                    </span>
-                                </div>
+                        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 flex-1">
+                            {/* Amount recap */}
+                            <div className="paper-card rounded-2xl px-4 py-3 flex items-center justify-between">
+                                <span className="font-mono text-[10px] text-muted-foreground uppercase font-bold tracking-widest">
+                                    Monto
+                                </span>
+                                <span className={`font-mono text-2xl font-bold tracking-tighter ${txType === "income" ? "text-success" : "text-foreground"}`}>
+                                    {txType === "income" ? "+" : "-"}{CURRENCY_SYMBOL[txCurrency]}{amountStr}
+                                </span>
+                            </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-mono uppercase text-muted-foreground font-bold tracking-widest">
-                                        Cuenta
-                                    </label>
-                                    {accounts.length > 0 ? (
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {accounts.map((acc) => (
-                                                <label
-                                                    key={acc.id}
-                                                    className={`p-2.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between h-16 ${
-                                                        selectedAccountId === acc.id
-                                                            ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary"
-                                                            : "border-black/10 bg-white/50 hover:bg-black/5"
-                                                    }`}
-                                                >
-                                                    <input
-                                                        type="radio"
-                                                        value={acc.id}
-                                                        {...register("account_id")}
-                                                        className="hidden"
-                                                    />
-                                                    <span className="font-mono text-[11px] font-bold line-clamp-1">{acc.name}</span>
-                                                    <span className="font-mono text-[9px] text-muted-foreground uppercase">
-                                                        {acc.currency}
-                                                    </span>
-                                                </label>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="rounded-xl border border-dashed border-black/15 p-3 bg-white/40">
-                                            <p className="font-mono text-[11px] text-muted-foreground mb-2">
-                                                No tienes cuentas. Crea una para registrar movimientos.
-                                            </p>
-                                            <Link
-                                                href="/accounts/new"
-                                                className="inline-flex items-center gap-1 text-[11px] font-mono font-bold uppercase tracking-wider text-foreground"
+                            {/* Account selector */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-mono uppercase text-muted-foreground font-bold tracking-widest px-0.5">
+                                    Cuenta
+                                </label>
+                                {accounts.length > 0 ? (
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {accounts.map((acc) => (
+                                            <label
+                                                key={acc.id}
+                                                className={`p-3 rounded-xl border transition-all cursor-pointer flex flex-col gap-1 ${
+                                                    selectedAccountId === acc.id
+                                                        ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary"
+                                                        : "border-black/10 bg-white/50 hover:bg-black/5"
+                                                }`}
                                             >
-                                                <CirclePlus className="w-3.5 h-3.5" />
-                                                Nueva cuenta
-                                            </Link>
-                                        </div>
-                                    )}
-                                    {errors.account_id && (
-                                        <p className="text-error text-[10px] font-mono mt-1">{errors.account_id.message}</p>
-                                    )}
-                                </div>
+                                                <input
+                                                    type="radio"
+                                                    value={acc.id}
+                                                    {...register("account_id")}
+                                                    className="hidden"
+                                                />
+                                                <span className="font-mono text-[11px] font-bold line-clamp-1">{acc.name}</span>
+                                                <span className="font-mono text-xs font-bold text-success">
+                                                    {acc.currency === "VES" ? "Bs." : "$"}{acc.balance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </span>
+                                                <span className="font-mono text-[9px] text-muted-foreground uppercase">
+                                                    {acc.currency}
+                                                </span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="rounded-xl border border-dashed border-black/15 p-3 bg-white/40">
+                                        <p className="font-mono text-[11px] text-muted-foreground mb-2">
+                                            No tienes cuentas. Crea una para registrar movimientos.
+                                        </p>
+                                        <Link
+                                            href="/accounts/new"
+                                            className="inline-flex items-center gap-1 text-[11px] font-mono font-bold uppercase tracking-wider text-foreground"
+                                        >
+                                            <CirclePlus className="w-3.5 h-3.5" />
+                                            Nueva cuenta
+                                        </Link>
+                                    </div>
+                                )}
+                                {errors.account_id && (
+                                    <p className="text-error text-[10px] font-mono">{errors.account_id.message}</p>
+                                )}
+                            </div>
 
+                            {/* Description */}
+                            <div className="paper-card rounded-2xl px-4 py-3 space-y-3">
                                 <div>
+                                    <label className="text-[10px] font-mono uppercase text-muted-foreground font-bold tracking-widest">
+                                        Concepto
+                                    </label>
                                     <input
                                         {...register("description")}
-                                        className="w-full bg-transparent border-b-2 border-black/20 focus:border-primary font-mono text-lg p-1.5 transition-colors outline-none placeholder:text-black/30"
-                                        placeholder="Concepto (Ej. Sushi)"
+                                        className="w-full bg-transparent font-mono text-base font-bold mt-1 outline-none placeholder:text-black/25 border-b border-black/10 pb-1"
+                                        placeholder="Ej. Sushi"
+                                        autoComplete="off"
                                     />
                                     {errors.description && (
                                         <p className="text-error text-[10px] font-mono mt-1">{errors.description.message}</p>
                                     )}
                                 </div>
 
-                                <div className="space-y-1.5">
+                                <div>
                                     <label className="text-[10px] font-mono uppercase text-muted-foreground font-bold tracking-widest">
-                                        Categoría
+                                        Nota <span className="opacity-40">(opcional)</span>
                                     </label>
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsCategorySheetOpen(true)}
-                                        className="w-full p-2.5 rounded-xl border border-black/10 bg-white/60 hover:bg-black/5 transition-colors flex items-center justify-between"
-                                    >
-                                        <div className="flex items-center min-w-0">
-                                            <span
-                                                className="w-8 h-8 rounded-lg mr-2 flex items-center justify-center"
-                                                style={{ backgroundColor: `${categoryVisual.color}20`, color: categoryVisual.color }}
-                                            >
-                                                <CategoryIcon className="w-4 h-4" />
-                                            </span>
-                                            <div className="text-left min-w-0">
-                                                <p className="font-mono text-sm font-bold truncate">
-                                                    {selectedCategory?.name ?? SIN_CATEGORIA}
-                                                </p>
-                                                <p className="font-mono text-[9px] text-muted-foreground uppercase">
-                                                    {selectedCategory?.type === "income" ? "Ingreso" : "Gasto"}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                                    </button>
-                                    {errors.category_id && (
-                                        <p className="text-error text-[10px] font-mono mt-1">{errors.category_id.message}</p>
-                                    )}
+                                    <input
+                                        {...register("notes")}
+                                        className="w-full bg-transparent font-mono text-sm mt-1 outline-none placeholder:text-black/25 border-b border-black/10 pb-1"
+                                        placeholder="Nota adicional"
+                                    />
                                 </div>
+                            </div>
 
-                                <input
-                                    {...register("notes")}
-                                    className="w-full bg-transparent border-b border-black/15 focus:border-primary font-mono text-sm p-1.5 transition-colors outline-none placeholder:text-black/30"
-                                    placeholder="Nota (opcional)"
-                                />
-
+                            {/* Category */}
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-mono uppercase text-muted-foreground font-bold tracking-widest px-0.5">
+                                    Categoría
+                                </label>
                                 <button
-                                    type="submit"
-                                    disabled={accounts.length === 0}
-                                    className="mt-auto w-full bg-foreground text-background font-mono font-bold uppercase tracking-widest py-3.5 rounded-xl shadow-lg hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    type="button"
+                                    onClick={() => setIsCategorySheetOpen(true)}
+                                    className="w-full paper-card p-3 rounded-xl flex items-center justify-between"
                                 >
-                                    Guardar
+                                    <div className="flex items-center min-w-0 gap-2.5">
+                                        <span
+                                            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                                            style={{ backgroundColor: `${categoryVisual.color}20`, color: categoryVisual.color }}
+                                        >
+                                            <CategoryIcon className="w-4 h-4" />
+                                        </span>
+                                        <div className="text-left min-w-0">
+                                            <p className="font-mono text-sm font-bold truncate">
+                                                {selectedCategory?.name ?? SIN_CATEGORIA}
+                                            </p>
+                                            <p className="font-mono text-[9px] text-muted-foreground uppercase">
+                                                {selectedCategory?.type === "income" ? "Ingreso" : "Gasto"}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                                 </button>
-                            </form>
-                        </div>
+                                {errors.category_id && (
+                                    <p className="text-error text-[10px] font-mono">{errors.category_id.message}</p>
+                                )}
+                            </div>
+
+                            {/* Submit */}
+                            <button
+                                type="submit"
+                                disabled={accounts.length === 0 || isSubmitting}
+                                className={`w-full py-4 rounded-2xl font-mono font-bold uppercase tracking-widest shadow-lg transition-all active:scale-[0.98] disabled:opacity-40 ${
+                                    txType === "income"
+                                        ? "bg-success text-white"
+                                        : "bg-foreground text-background"
+                                }`}
+                            >
+                                {isSubmitting ? "Guardando..." : txType === "income" ? "Registrar Ingreso" : "Registrar Gasto"}
+                            </button>
+                        </form>
                     </motion.div>
                 )}
             </AnimatePresence>
 
+            {/* ── Category Sheet ──────────────────────────────────────────── */}
             <AnimatePresence>
                 {isCategorySheetOpen && (
                     <motion.div
@@ -502,11 +532,7 @@ export default function NewTransactionWizard() {
 
                                 {txType === "income" &&
                                     visibleCategories
-                                        .filter(
-                                            (cat) =>
-                                                categoryIdentity(cat.type, cat.name) !==
-                                                categoryIdentity("income", SIN_CATEGORIA)
-                                        )
+                                        .filter((cat) => categoryIdentity(cat.type, cat.name) !== categoryIdentity("income", SIN_CATEGORIA))
                                         .map((cat) => {
                                             const visual = getCategoryVisual(cat);
                                             const Icon = resolveIcon(visual.icon);
@@ -526,10 +552,7 @@ export default function NewTransactionWizard() {
                                                     <div className="flex items-center">
                                                         <span
                                                             className="w-10 h-10 rounded-xl mr-3 flex items-center justify-center"
-                                                            style={{
-                                                                backgroundColor: `${visual.color}20`,
-                                                                color: visual.color,
-                                                            }}
+                                                            style={{ backgroundColor: `${visual.color}20`, color: visual.color }}
                                                         >
                                                             <Icon className="w-4 h-4" />
                                                         </span>
@@ -554,10 +577,7 @@ export default function NewTransactionWizard() {
                                                 <div className="flex items-center px-1">
                                                     <span
                                                         className="w-8 h-8 rounded-lg mr-2 flex items-center justify-center"
-                                                        style={{
-                                                            backgroundColor: `${section.color}22`,
-                                                            color: section.color,
-                                                        }}
+                                                        style={{ backgroundColor: `${section.color}22`, color: section.color }}
                                                     >
                                                         <SectionIcon className="w-4 h-4" />
                                                     </span>
@@ -578,18 +598,13 @@ export default function NewTransactionWizard() {
                                                                 setIsCategorySheetOpen(false);
                                                             }}
                                                             className={`w-full p-3 rounded-2xl border transition-all flex items-center justify-between ${
-                                                                active
-                                                                    ? "border-primary bg-primary/10"
-                                                                    : "border-black/10 bg-white/60"
+                                                                active ? "border-primary bg-primary/10" : "border-black/10 bg-white/60"
                                                             }`}
                                                         >
                                                             <div className="flex items-center">
                                                                 <span
                                                                     className="w-10 h-10 rounded-xl mr-3 flex items-center justify-center"
-                                                                    style={{
-                                                                        backgroundColor: `${visual.color}20`,
-                                                                        color: visual.color,
-                                                                    }}
+                                                                    style={{ backgroundColor: `${visual.color}20`, color: visual.color }}
                                                                 >
                                                                     <Icon className="w-4 h-4" />
                                                                 </span>
