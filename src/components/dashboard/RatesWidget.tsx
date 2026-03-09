@@ -101,7 +101,7 @@ export function RatesWidget() {
 
                 {/* USDT */}
                 <div>
-                    <p className="text-[9px] font-mono text-muted-foreground uppercase mb-1 tracking-wide">Paralelo ~</p>
+                    <p className="text-[9px] font-mono text-muted-foreground uppercase mb-1 tracking-wide">USDT</p>
                     <div className="flex items-baseline gap-0.5">
                         <span className="text-[10px] font-mono text-muted-foreground">Bs.</span>
                         {loading ? (
