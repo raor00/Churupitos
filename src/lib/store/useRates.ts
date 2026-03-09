@@ -28,20 +28,20 @@ export const useRatesStore = create<RatesState>((set, get) => ({
     fetchRates: async () => {
         set({ isFetching: true });
         try {
+            // ve.dolarapi.com — returns [{fuente, promedio, ...}]
             const [usdRes, eurRes] = await Promise.all([
-                fetch("https://pydolarve.org/api/v2/dollar?page=alcambio", { cache: "no-store" }),
-                fetch("https://pydolarve.org/api/v2/euro?page=alcambio", { cache: "no-store" }),
+                fetch("https://ve.dolarapi.com/v1/dolares", { cache: "no-store" }),
+                fetch("https://ve.dolarapi.com/v1/euros", { cache: "no-store" }),
             ]);
 
             if (!usdRes.ok || !eurRes.ok) throw new Error("Fetch failed");
 
-            const usdData = await usdRes.json();
-            const eurData = await eurRes.json();
+            const usdData: { fuente: string; promedio: number }[] = await usdRes.json();
+            const eurData: { fuente: string; promedio: number }[] = await eurRes.json();
 
-            // pydolarve returns monitors: { bcv: { price }, usd: { price }, ... }
-            const bcv = usdData?.monitors?.bcv?.price ?? 0;
-            const usdt = usdData?.monitors?.usd?.price ?? usdData?.monitors?.enparalelovzla?.price ?? 0;
-            const euro = eurData?.monitors?.bcv?.price ?? 0;
+            const bcv = usdData.find(d => d.fuente === "oficial")?.promedio ?? 0;
+            const usdt = usdData.find(d => d.fuente === "paralelo")?.promedio ?? 0;
+            const euro = eurData.find(d => d.fuente === "oficial")?.promedio ?? 0;
 
             set({
                 bcv,
@@ -51,9 +51,9 @@ export const useRatesStore = create<RatesState>((set, get) => ({
                 isFetching: false,
             });
         } catch {
-            // If first load failed, set rough fallback values so the app isn't broken
+            // Keep existing values; only set fallbacks on first load
             if (get().bcv === 0) {
-                set({ isFetching: false, bcv: 65.50, usdt: 70.00, euro: 72.00 });
+                set({ isFetching: false, bcv: 433.17, usdt: 616.42, euro: 501.73 });
             } else {
                 set({ isFetching: false });
             }
