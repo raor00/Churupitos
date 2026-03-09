@@ -2,7 +2,7 @@
 
 import { KPICard } from "@/components/dashboard/KPICard";
 import { RatesWidget } from "@/components/dashboard/RatesWidget";
-import { WeeklyBarChart } from "@/components/dashboard/Charts/WeeklyBarChart";
+import { MonthlyChart } from "@/components/dashboard/Charts/MonthlyChart";
 import { useState } from "react";
 import { AlertTriangle, Repeat, Target, Wallet } from "lucide-react";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
@@ -210,10 +210,10 @@ export default function Home() {
       <RecentTransactions />
 
       <div className="pt-1">
-        <h2 className="text-sm font-mono tracking-tight text-muted-foreground uppercase mb-2">
+        <h2 className="text-sm font-mono tracking-tight text-muted-foreground uppercase mb-3">
           Análisis de Movimientos
         </h2>
-        <WeeklyBarChart />
+        <MonthlyChart />
       </div>
     </div>
   );

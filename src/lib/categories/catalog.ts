@@ -163,7 +163,6 @@ const EXPENSE_GROUP_ORDER = new Map(EXPENSE_GROUPS.map((group, index) => [group.
 const LEGACY_DEFAULTS = new Set([
     categoryIdentity("expense", "Comida"),
     categoryIdentity("expense", "Transporte"),
-    categoryIdentity("income", "Salario"),
 ]);
 
 export function getCategoryPreset(type: CategoryType, name: string): CategoryPreset | undefined {

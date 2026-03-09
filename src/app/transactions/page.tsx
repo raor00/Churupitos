@@ -261,41 +261,42 @@ export default function TransactionsListPage() {
                                 {/* Transactions for this day */}
                                 <div className="space-y-2">
                                     {(txs as any[]).map((tx) => (
-                                        <motion.div
-                                            key={tx.id}
-                                            initial={{ opacity: 0, y: 6 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            className="paper-card p-4 rounded-xl flex items-center justify-between transition-transform hover:-translate-y-0.5 active:scale-[0.99]"
-                                        >
-                                            <div className="flex items-center space-x-3 min-w-0">
-                                                <div className={cn(
-                                                    "w-10 h-10 flex-shrink-0 rounded-full flex items-center justify-center border",
-                                                    tx.type === "income"
-                                                        ? "bg-success/5 border-success/20 text-success"
-                                                        : "bg-error/5 border-error/20 text-error"
-                                                )}>
-                                                    {tx.type === "income"
-                                                        ? <ArrowDownRight className="w-5 h-5" />
-                                                        : <ArrowUpRight className="w-5 h-5" />
-                                                    }
+                                        <Link key={tx.id} href={`/transactions/${tx.id}/edit`}>
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 6 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                className="paper-card p-4 rounded-xl flex items-center justify-between transition-transform hover:-translate-y-0.5 active:scale-[0.99]"
+                                            >
+                                                <div className="flex items-center space-x-3 min-w-0">
+                                                    <div className={cn(
+                                                        "w-10 h-10 flex-shrink-0 rounded-full flex items-center justify-center border",
+                                                        tx.type === "income"
+                                                            ? "bg-success/5 border-success/20 text-success"
+                                                            : "bg-error/5 border-error/20 text-error"
+                                                    )}>
+                                                        {tx.type === "income"
+                                                            ? <ArrowDownRight className="w-5 h-5" />
+                                                            : <ArrowUpRight className="w-5 h-5" />
+                                                        }
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="font-mono font-bold tracking-tight text-sm truncate">{tx.description}</p>
+                                                        <p className="font-mono text-[10px] text-muted-foreground uppercase mt-0.5 truncate">
+                                                            {getCategoryName(tx.category_id)}
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <div className="min-w-0">
-                                                    <p className="font-mono font-bold tracking-tight text-sm truncate">{tx.description}</p>
-                                                    <p className="font-mono text-[10px] text-muted-foreground uppercase mt-0.5 truncate">
-                                                        {getCategoryName(tx.category_id)}
-                                                    </p>
-                                                </div>
-                                            </div>
 
-                                            <div className={cn(
-                                                "font-mono font-bold tracking-tighter text-right flex-shrink-0 ml-3",
-                                                tx.type === "income" ? "text-success" : "text-foreground"
-                                            )}>
-                                                {tx.type === "income" ? "+" : "-"}
-                                                {tx.currency === "USD" || tx.currency === "USDT" ? "$" : tx.currency === "VES" ? "Bs." : "€"}
-                                                {tx.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                                            </div>
-                                        </motion.div>
+                                                <div className={cn(
+                                                    "font-mono font-bold tracking-tighter text-right flex-shrink-0 ml-3",
+                                                    tx.type === "income" ? "text-success" : "text-foreground"
+                                                )}>
+                                                    {tx.type === "income" ? "+" : "-"}
+                                                    {tx.currency === "USD" || tx.currency === "USDT" ? "$" : tx.currency === "VES" ? "Bs." : "€"}
+                                                    {tx.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                                </div>
+                                            </motion.div>
+                                        </Link>
                                     ))}
                                 </div>
                             </div>

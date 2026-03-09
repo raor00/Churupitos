@@ -21,6 +21,8 @@ interface TransactionState {
     fetchData: (userId: string) => Promise<void>;
 
     addTransaction: (tx: Omit<Transaction, "id" | "created_at" | "updated_at">) => Promise<void>;
+    updateTransaction: (id: string, updates: Partial<Omit<Transaction, "id" | "created_at" | "user_id">>) => Promise<void>;
+    deleteTransaction: (id: string) => Promise<void>;
     addCategory: (cat: Omit<Category, "id" | "created_at">) => Promise<void>;
     updateCategory: (id: string, updates: Partial<Category>) => Promise<void>;
     deleteCategory: (id: string) => Promise<void>;
@@ -107,6 +109,35 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
             }));
         } catch (err: unknown) {
             console.error("Error adding transaction:", err);
+            set({ error: getErrorMessage(err) });
+        }
+    },
+
+    updateTransaction: async (id, updates) => {
+        try {
+            const { data, error } = await supabase
+                .from('transactions')
+                .update({ ...updates, updated_at: new Date().toISOString() })
+                .eq('id', id)
+                .select()
+                .single();
+            if (error) throw error;
+            set((state) => ({
+                transactions: state.transactions.map(tx => tx.id === id ? { ...tx, ...data as Transaction } : tx)
+            }));
+        } catch (err: unknown) {
+            console.error("Error updating transaction:", err);
+            set({ error: getErrorMessage(err) });
+        }
+    },
+
+    deleteTransaction: async (id) => {
+        try {
+            const { error } = await supabase.from('transactions').delete().eq('id', id);
+            if (error) throw error;
+            set((state) => ({ transactions: state.transactions.filter(tx => tx.id !== id) }));
+        } catch (err: unknown) {
+            console.error("Error deleting transaction:", err);
             set({ error: getErrorMessage(err) });
         }
     },

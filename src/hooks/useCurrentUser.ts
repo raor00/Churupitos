@@ -33,6 +33,8 @@ export function useCurrentUser() {
         // Transaction mutations
         addTransaction: async (tx: Omit<Transaction, "id" | "created_at" | "updated_at" | "user_id">) =>
             await txStore.addTransaction({ ...tx, user_id: userId }),
+        updateTransaction: txStore.updateTransaction,
+        deleteTransaction: txStore.deleteTransaction,
         importTransactions: async (txs: Omit<Transaction, "id" | "created_at" | "updated_at" | "user_id">[]) =>
             await txStore.importTransactions(txs.map(t => ({ ...t, user_id: userId }))),
 
