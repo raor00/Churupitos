@@ -91,9 +91,10 @@ export default function Home() {
   const ratesState = useRatesStore();
   const rate = getRate(ratesState);
 
+  const safeRate = rate > 0 ? rate : 1;
   const toUSD = (amount: number, curr: string) => {
     if (curr === "USD" || curr === "USDT") return amount;
-    if (curr === "VES") return amount / rate;
+    if (curr === "VES") return amount / safeRate;
     if (curr === "EUR") return amount * 1.08;
     return amount;
   };

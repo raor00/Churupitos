@@ -6,7 +6,8 @@ import { useRatesStore } from "@/lib/store/useRates";
 
 export function RatesWidget() {
     const { bcv, usdt, euro, preferredRate, setPreferredRate, fetchRates, lastUpdated, isFetching } = useRatesStore();
-    const loading = !lastUpdated;
+    // Show skeleton only while actively fetching for the first time
+    const loading = isFetching && !lastUpdated && bcv === 0;
 
     // Fetch on mount, then auto-refresh every 5 minutes
     useEffect(() => {

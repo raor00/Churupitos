@@ -19,7 +19,8 @@ export function AnimatedCounter({ value, format = "number" }: AnimatedCounterPro
     });
 
     useEffect(() => {
-        const controls = animate(motionValue, value, {
+        const safeValue = isFinite(value) && !isNaN(value) ? value : 0;
+        const controls = animate(motionValue, safeValue, {
             duration: 1.5,
             ease: "easeOut"
         });

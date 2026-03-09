@@ -67,11 +67,26 @@ export default function AuthPage() {
         }
     };
 
-    const selectUser = (id: string) => {
+    const selectUser = async (id: string) => {
+        const user = users.find(u => u.id === id);
         setSelectedUserId(id);
         setPin("");
         setError(null);
-        setScreen("pin");
+
+        // If biometric is configured, trigger it immediately — skip straight to bio prompt
+        if (user?.biometricEnabled && bioSupported) {
+            setScreen("loading");
+            const ok = await loginWithBiometric(id);
+            if (ok) {
+                await handleSuccess(id);
+            } else {
+                // Bio failed/cancelled → fallback to PIN
+                setScreen("pin");
+                setError("Biométrico cancelado. Ingresa tu PIN.");
+            }
+        } else {
+            setScreen("pin");
+        }
     };
 
     return (
