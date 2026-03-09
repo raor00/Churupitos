@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useAuthStore } from "@/lib/store/useAuth";
 import { isBiometricSupported } from "@/lib/auth/webauthn";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Shield, Fingerprint, Lock, CheckCircle, AlertCircle, ChevronRight, User } from "lucide-react";
+import { ArrowLeft, Shield, Fingerprint, Lock, CheckCircle, AlertCircle, ChevronRight, User, FileText } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -240,6 +240,18 @@ export default function ProfilePage() {
                                             <User className="w-4 h-4 text-foreground" />
                                         </div>
                                         <p className="font-mono font-bold text-sm">Nuevo usuario</p>
+                                    </div>
+                                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                                </Link>
+                                <Link
+                                    href="/privacy"
+                                    className="w-full flex items-center justify-between px-4 py-4 hover:bg-black/3 transition-colors"
+                                >
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-9 h-9 rounded-xl bg-black/5 flex items-center justify-center">
+                                            <FileText className="w-4 h-4 text-foreground" />
+                                        </div>
+                                        <p className="font-mono font-bold text-sm">Políticas de privacidad</p>
                                     </div>
                                     <ChevronRight className="w-4 h-4 text-muted-foreground" />
                                 </Link>

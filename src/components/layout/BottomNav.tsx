@@ -12,6 +12,7 @@ import {
     Calculator,
     MoreHorizontal,
     X,
+    BarChart2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
@@ -26,12 +27,29 @@ type NavItem = {
 const ALL_EXTRA_ITEMS: NavItem[] = [
     { label: "Saldos", icon: Wallet, path: "/accounts" },
     { label: "Categ", icon: Tag, path: "/categories" },
+    { label: "Stats", icon: BarChart2, path: "/reports" },
     { label: "Metas", icon: Target, path: "/buckets" },
     { label: "Calc", icon: Calculator, path: "/calculator" },
 ];
 
 const DEFAULT_PINNED = ALL_EXTRA_ITEMS[0];
 const STORAGE_KEY = "churupitos-nav-pinned";
+
+function NavButton({ href, label, icon: Icon, active }: { href: string; label: string; icon: React.ElementType; active: boolean }) {
+    return (
+        <Link href={href} className="relative flex flex-col items-center justify-center w-12 h-12 rounded-full transition-colors duration-200">
+            {active && (
+                <motion.div
+                    layoutId="nav-active-pill"
+                    className="absolute inset-0 rounded-full bg-white/80 shadow-[0_2px_12px_rgba(0,0,0,0.10)]"
+                    transition={{ type: "spring", damping: 26, stiffness: 380 }}
+                />
+            )}
+            <Icon className={cn("w-5 h-5 mb-0.5 relative z-10 transition-colors duration-200", active ? "text-foreground" : "text-muted-foreground")} />
+            <span className={cn("text-[9px] font-mono tracking-tighter font-bold uppercase relative z-10 transition-colors duration-200", active ? "text-foreground" : "text-muted-foreground")}>{label}</span>
+        </Link>
+    );
+}
 
 export function BottomNav() {
     const pathname = usePathname();
@@ -60,64 +78,41 @@ export function BottomNav() {
             <div className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none"
                 style={{ height: "calc(5rem + env(safe-area-inset-bottom))" }} />
             <nav
-                className="fixed left-1/2 -translate-x-1/2 w-[90%] max-w-sm h-16 bg-white/40 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.05)] rounded-full z-50 px-2 flex items-center justify-around"
+                className="fixed left-1/2 -translate-x-1/2 w-[92%] max-w-sm h-16 bg-white/55 backdrop-blur-2xl border border-white/70 shadow-[0_8px_32px_rgba(0,0,0,0.08),0_1px_0_rgba(255,255,255,0.9)_inset] rounded-full z-50 px-2 flex items-center justify-around"
                 style={{ bottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
             >
                 {/* Inicio — fixed */}
-                <Link
-                    href="/"
-                    className={cn(
-                        "flex flex-col items-center justify-center w-12 h-12 rounded-full transition-all duration-300",
-                        pathname === "/" ? "text-primary" : "text-muted-foreground hover:text-primary hover:bg-black/5"
-                    )}
-                >
-                    <Home className="w-5 h-5 mb-0.5" />
-                    <span className="text-[9px] font-mono tracking-tighter font-bold uppercase">Inicio</span>
-                </Link>
+                <NavButton href="/" label="Inicio" icon={Home} active={pathname === "/"} />
 
                 {/* Trans — fixed */}
-                <Link
-                    href="/transactions"
-                    className={cn(
-                        "flex flex-col items-center justify-center w-12 h-12 rounded-full transition-all duration-300",
-                        pathname === "/transactions" ? "text-primary" : "text-muted-foreground hover:text-primary hover:bg-black/5"
-                    )}
-                >
-                    <ArrowRightLeft className="w-5 h-5 mb-0.5" />
-                    <span className="text-[9px] font-mono tracking-tighter font-bold uppercase">Trans</span>
-                </Link>
+                <NavButton href="/transactions" label="Trans" icon={ArrowRightLeft} active={pathname === "/transactions"} />
 
                 {/* FAB + — fixed */}
                 <div className="relative -top-6">
                     <Link href="/transactions/new">
-                        <div className="w-14 h-14 bg-foreground rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95 border-4 border-white/50">
+                        <div className="w-14 h-14 bg-foreground rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.25)] transition-transform hover:scale-105 active:scale-95 border-[3px] border-white/60">
                             <Plus className="w-6 h-6 text-background" />
                         </div>
                     </Link>
                 </div>
 
                 {/* Pinned extra — customizable */}
-                <Link
-                    href={pinned.path}
-                    className={cn(
-                        "flex flex-col items-center justify-center w-12 h-12 rounded-full transition-all duration-300",
-                        pathname === pinned.path ? "text-primary" : "text-muted-foreground hover:text-primary hover:bg-black/5"
-                    )}
-                >
-                    <pinned.icon className="w-5 h-5 mb-0.5" />
-                    <span className="text-[9px] font-mono tracking-tighter font-bold uppercase">{pinned.label}</span>
-                </Link>
+                <NavButton href={pinned.path} label={pinned.label} icon={pinned.icon} active={pathname === pinned.path} />
 
                 {/* Más — opens sheet */}
                 <button
                     onClick={() => setSheetOpen(v => !v)}
-                    className={cn(
-                        "flex flex-col items-center justify-center w-12 h-12 rounded-full transition-all duration-300",
-                        sheetOpen ? "text-primary bg-primary/5" : "text-muted-foreground hover:text-primary hover:bg-black/5"
-                    )}
+                    className="relative flex flex-col items-center justify-center w-12 h-12 rounded-full transition-colors duration-200"
                 >
-                    <MoreHorizontal className="w-5 h-5 mb-0.5" />
-                    <span className="text-[9px] font-mono tracking-tighter font-bold uppercase">Más</span>
+                    {sheetOpen && (
+                        <motion.div
+                            layoutId="nav-active-pill"
+                            className="absolute inset-0 rounded-full bg-white/80 shadow-[0_2px_12px_rgba(0,0,0,0.10)]"
+                            transition={{ type: "spring", damping: 26, stiffness: 380 }}
+                        />
+                    )}
+                    <MoreHorizontal className={cn("w-5 h-5 mb-0.5 relative z-10 transition-colors duration-200", sheetOpen ? "text-foreground" : "text-muted-foreground")} />
+                    <span className={cn("text-[9px] font-mono tracking-tighter font-bold uppercase relative z-10 transition-colors duration-200", sheetOpen ? "text-foreground" : "text-muted-foreground")}>Más</span>
                 </button>
             </nav>
 

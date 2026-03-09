@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, Shield, Lock, Eye, Database, Trash2, Bell } from "lucide-react";
 
 const SECTIONS = [
@@ -56,16 +56,17 @@ const SECTIONS = [
 ];
 
 export default function PrivacyPage() {
+    const router = useRouter();
     return (
         <div className="min-h-screen bg-background px-5 py-8 max-w-md mx-auto">
             {/* Header */}
             <div className="flex items-center gap-3 mb-8">
-                <Link
-                    href="/auth"
+                <button
+                    onClick={() => router.back()}
                     className="w-9 h-9 rounded-full bg-black/5 flex items-center justify-center hover:bg-black/10 transition-colors shrink-0"
                 >
                     <ArrowLeft className="w-4 h-4" />
-                </Link>
+                </button>
                 <div>
                     <p className="text-[10px] font-mono uppercase text-muted-foreground tracking-widest">Legal</p>
                     <h1 className="text-xl font-mono tracking-tighter uppercase font-bold">Privacidad</h1>
