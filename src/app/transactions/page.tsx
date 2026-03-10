@@ -71,6 +71,14 @@ function monthLabel(ym: string) {
     return new Date(y, m - 1, 1).toLocaleDateString("es-VE", { month: "long", year: "numeric" });
 }
 
+// Convert any tx amount to USD equivalent using the stored rate_used
+function txAmountInUSD(tx: any): number {
+    if (tx.currency === "USD" || tx.currency === "USDT") return tx.amount;
+    if (tx.currency === "VES") return tx.rate_used > 0 ? tx.amount / tx.rate_used : 0;
+    if (tx.currency === "EUR") return tx.amount * 1.08;
+    return tx.amount;
+}
+
 export default function TransactionsListPage() {
     const { transactions, categories } = useCurrentUser();
 
@@ -90,13 +98,13 @@ export default function TransactionsListPage() {
         });
     }, [transactions, period, txType, customMonth]);
 
-    // ── Summary for filtered set ─────────────────────────────────────────────
+    // ── Summary for filtered set (always in USD equivalent) ─────────────────
     const totalIncome = filtered
         .filter((tx: any) => tx.type === "income")
-        .reduce((s: number, tx: any) => s + tx.amount, 0);
+        .reduce((s: number, tx: any) => s + txAmountInUSD(tx), 0);
     const totalExpense = filtered
         .filter((tx: any) => tx.type === "expense")
-        .reduce((s: number, tx: any) => s + tx.amount, 0);
+        .reduce((s: number, tx: any) => s + txAmountInUSD(tx), 0);
 
     // ── Group by date ────────────────────────────────────────────────────────
     const grouped = useMemo(() => {
@@ -242,8 +250,8 @@ export default function TransactionsListPage() {
                             });
                         })();
 
-                        const dayIncome = txs.filter((tx: any) => tx.type === "income").reduce((s: number, tx: any) => s + tx.amount, 0);
-                        const dayExpense = txs.filter((tx: any) => tx.type === "expense").reduce((s: number, tx: any) => s + tx.amount, 0);
+                        const dayIncome = txs.filter((tx: any) => tx.type === "income").reduce((s: number, tx: any) => s + txAmountInUSD(tx), 0);
+                        const dayExpense = txs.filter((tx: any) => tx.type === "expense").reduce((s: number, tx: any) => s + txAmountInUSD(tx), 0);
 
                         return (
                             <div key={date}>
@@ -291,9 +299,17 @@ export default function TransactionsListPage() {
                                                     "font-mono font-bold tracking-tighter text-right flex-shrink-0 ml-3",
                                                     tx.type === "income" ? "text-success" : "text-foreground"
                                                 )}>
-                                                    {tx.type === "income" ? "+" : "-"}
-                                                    {tx.currency === "USD" || tx.currency === "USDT" ? "$" : tx.currency === "VES" ? "Bs." : "€"}
-                                                    {tx.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                                    <div>
+                                                        {tx.type === "income" ? "+" : "-"}
+                                                        {tx.currency === "USD" || tx.currency === "USDT" ? "$" : tx.currency === "VES" ? "Bs." : "€"}
+                                                        {tx.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                                    </div>
+                                                    {tx.currency === "VES" && tx.rate_used > 0 && (
+                                                        <div className="text-[9px] text-muted-foreground font-normal mt-0.5 space-y-0.5">
+                                                            <div>≈ ${(tx.amount / tx.rate_used).toFixed(2)} USDT</div>
+                                                            <div className="opacity-60">@ Bs.{tx.rate_used.toFixed(0)}/{tx.rate_type === "bcv" ? "BCV" : "USDT"}</div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </motion.div>
                                         </Link>
