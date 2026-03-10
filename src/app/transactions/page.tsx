@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useRatesStore } from "@/lib/store/useRates";
 import { ArrowDownRight, ArrowUpRight, Plus, ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -81,6 +82,7 @@ function txAmountInUSD(tx: any): number {
 
 export default function TransactionsListPage() {
     const { transactions, categories } = useCurrentUser();
+    const { bcv } = useRatesStore();
 
     const [period, setPeriod] = useState<Period>("month");
     const [txType, setTxType] = useState<TxType>("all");
@@ -306,8 +308,9 @@ export default function TransactionsListPage() {
                                                     </div>
                                                     {tx.currency === "VES" && tx.rate_used > 0 && (
                                                         <div className="text-[9px] text-muted-foreground font-normal mt-0.5 space-y-0.5">
-                                                            <div>≈ ${(tx.amount / tx.rate_used).toFixed(2)} USDT</div>
-                                                            <div className="opacity-60">@ Bs.{tx.rate_used.toFixed(0)}/{tx.rate_type === "bcv" ? "BCV" : "USDT"}</div>
+                                                            <div className="font-bold">≈ ${(tx.amount / tx.rate_used).toFixed(2)} USDT</div>
+                                                            {bcv > 0 && <div>≈ ${(tx.amount / bcv).toFixed(2)} BCV</div>}
+                                                            <div className="opacity-60">tasa: Bs.{tx.rate_used.toFixed(0)}</div>
                                                         </div>
                                                     )}
                                                 </div>
