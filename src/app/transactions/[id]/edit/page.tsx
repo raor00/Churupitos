@@ -24,6 +24,12 @@ import {
     sortCategoriesByPreset,
 } from "@/lib/categories/catalog";
 import { cn } from "@/lib/utils";
+import {
+    buildTransactionDerivedFields,
+    getSignedTransactionImpact,
+    isBalanceNegative,
+    roundBalance,
+} from "@/lib/transactions/amounts";
 
 const iconRegistry = icons as Record<string, LucideIcon>;
 const resolveIcon = (name?: string): LucideIcon => (name ? (iconRegistry[name] ?? Tag) : Tag);
@@ -39,9 +45,9 @@ export default function EditTransactionPage() {
     const params = useParams();
     const router = useRouter();
     const txId = params.id as string;
-    const { transactions, categories, updateTransaction, deleteTransaction } = useCurrentUser();
+    const { transactions, categories, accounts, updateTransaction, deleteTransaction } = useCurrentUser();
 
-    const tx = transactions.find((t: any) => t.id === txId);
+    const tx = transactions.find((t) => t.id === txId);
 
     // Form state — pre-fill from tx
     const [description, setDescription] = useState(tx?.description ?? "");
@@ -54,29 +60,67 @@ export default function EditTransactionPage() {
     const [categorySearch, setCategorySearch] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
 
     const txType = tx?.type ?? "expense";
+    const parsedAmount = Number.parseFloat(amount);
+    const draftDerivedFields = useMemo(
+        () =>
+            buildTransactionDerivedFields({
+                amount: Number.isFinite(parsedAmount) ? parsedAmount : 0,
+                currency,
+                rate_used: tx?.rate_used,
+            }),
+        [currency, parsedAmount, tx?.rate_used]
+    );
+    const account = accounts.find((item) => item.id === tx?.account_id);
+    const projectedBalance = useMemo(() => {
+        if (!tx || !account || !Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+            return account?.balance ?? 0;
+        }
+
+        const baseBalance = roundBalance(account.balance - getSignedTransactionImpact(tx, account.currency));
+        return roundBalance(
+            baseBalance +
+            getSignedTransactionImpact(
+                {
+                    ...tx,
+                    amount: parsedAmount,
+                    currency,
+                    amount_ves: draftDerivedFields.amount_ves,
+                    rate_used: draftDerivedFields.rate_used,
+                },
+                account.currency
+            )
+        );
+    }, [account, currency, draftDerivedFields.amount_ves, draftDerivedFields.rate_used, parsedAmount, tx]);
+    const hasInsufficientFunds =
+        txType === "expense" &&
+        !!account &&
+        Number.isFinite(parsedAmount) &&
+        parsedAmount > 0 &&
+        isBalanceNegative(projectedBalance);
 
     // Category lists
     const categoriesByType = useMemo(
-        () => sortCategoriesByPreset(categories.filter((cat: any) => cat.type === txType && !isLegacyDefaultCategory(cat))),
+        () => sortCategoriesByPreset(categories.filter((cat) => cat.type === txType && !isLegacyDefaultCategory(cat))),
         [categories, txType]
     );
 
     const visibleCategories = useMemo(() => {
         const q = categorySearch.trim().toLowerCase();
         if (!q) return categoriesByType;
-        return categoriesByType.filter((cat: any) => cat.name.toLowerCase().includes(q));
+        return categoriesByType.filter((cat) => cat.name.toLowerCase().includes(q));
     }, [categoriesByType, categorySearch]);
 
     const expenseSections = useMemo(
-        () => groupExpenseCategories(visibleCategories.filter((cat: any) =>
+        () => groupExpenseCategories(visibleCategories.filter((cat) =>
             categoryIdentity(cat.type, cat.name) !== categoryIdentity("expense", SIN_CATEGORIA)
         )),
         [visibleCategories]
     );
 
-    const selectedCategory = categories.find((c: any) => c.id === categoryId);
+    const selectedCategory = categories.find((c) => c.id === categoryId);
     const categoryVisual = selectedCategory
         ? getCategoryVisual(selectedCategory)
         : { icon: "CircleOff", color: "#6D7588", name: SIN_CATEGORIA };
@@ -98,6 +142,7 @@ export default function EditTransactionPage() {
         const num = parseFloat(amount);
         if (!description.trim() || isNaN(num) || num <= 0) return;
         setIsSubmitting(true);
+        setSubmitError(null);
         try {
             await updateTransaction(txId, {
                 description: description.trim(),
@@ -108,6 +153,8 @@ export default function EditTransactionPage() {
                 notes: notes.trim() || undefined,
             });
             router.push("/transactions");
+        } catch (error) {
+            setSubmitError(error instanceof Error ? error.message : "No se pudo guardar la transacción.");
         } finally {
             setIsSubmitting(false);
         }
@@ -115,9 +162,12 @@ export default function EditTransactionPage() {
 
     const handleDelete = async () => {
         setIsSubmitting(true);
+        setSubmitError(null);
         try {
             await deleteTransaction(txId);
             router.push("/transactions");
+        } catch (error) {
+            setSubmitError(error instanceof Error ? error.message : "No se pudo eliminar la transacción.");
         } finally {
             setIsSubmitting(false);
         }
@@ -173,7 +223,10 @@ export default function EditTransactionPage() {
                     {(["USD", "VES", "EUR", "USDT"] as const).map(c => (
                         <button
                             key={c}
-                            onClick={() => setCurrency(c)}
+                            onClick={() => {
+                                setSubmitError(null);
+                                setCurrency(c);
+                            }}
                             className={cn(
                                 "px-2.5 py-1 rounded-full font-mono text-[10px] font-bold transition-all",
                                 currency === c
@@ -185,6 +238,20 @@ export default function EditTransactionPage() {
                         </button>
                     ))}
                 </div>
+                {account && (
+                    <p className="font-mono text-[10px] text-muted-foreground mt-3">
+                        Saldo proyectado:{" "}
+                        <span className={cn("font-bold", hasInsufficientFunds ? "text-error" : "text-foreground")}>
+                            {account.currency === "VES" ? "Bs." : account.currency === "EUR" ? "€" : "$"}
+                            {projectedBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                    </p>
+                )}
+                {hasInsufficientFunds && (
+                    <p className="font-mono text-[10px] text-error mt-1">
+                        Ese gasto supera el saldo disponible de la cuenta asociada.
+                    </p>
+                )}
             </div>
 
             {/* Description */}
@@ -241,10 +308,16 @@ export default function EditTransactionPage() {
                 </button>
             </div>
 
+            {submitError && (
+                <div className="paper-card rounded-2xl p-4 border border-error/20 bg-error/5">
+                    <p className="font-mono text-[11px] text-error">{submitError}</p>
+                </div>
+            )}
+
             {/* Save button */}
             <button
                 onClick={handleSave}
-                disabled={isSubmitting || !description.trim() || parseFloat(amount) <= 0}
+                disabled={isSubmitting || !description.trim() || parseFloat(amount) <= 0 || hasInsufficientFunds}
                 className={cn(
                     "w-full py-3.5 rounded-2xl font-mono font-bold text-sm uppercase tracking-widest transition-all",
                     isIncome
@@ -334,7 +407,7 @@ export default function EditTransactionPage() {
                                                     {section.name}
                                                 </p>
                                             </div>
-                                            {section.categories.map((cat: any) => {
+                                            {section.categories.map((cat) => {
                                                 const v = getCategoryVisual(cat);
                                                 const isSelected = categoryId === cat.id;
                                                 return (
@@ -359,7 +432,7 @@ export default function EditTransactionPage() {
                                     ))
                                     : visibleCategories
                                         .filter(c => categoryIdentity(c.type, c.name) !== categoryIdentity("income", SIN_CATEGORIA))
-                                        .map((cat: any) => {
+                                        .map((cat) => {
                                             const v = getCategoryVisual(cat);
                                             const isSelected = categoryId === cat.id;
                                             return (

@@ -254,29 +254,35 @@ export default function ImportPage() {
     const handleImport = async () => {
         if (!effectiveAccountId) return;
         setImporting(true);
+        setFileError(null);
 
         const selectedRowsSorted = rows
             .map((row, index) => ({ row, index }))
             .filter(({ row, index }) => row.valid && !isDuplicate(row) && selectedRows.has(index))
             .sort((left, right) => left.row.date.localeCompare(right.row.date));
 
-        for (const { row } of selectedRowsSorted) {
-            await addTransaction({
-                type: "income",
-                description: row.description,
-                amount: row.amount,
-                currency: "USD",
-                amount_ves: row.amount * rate,
-                rate_used: rate,
-                rate_type: ratesState.preferredRate === "bcv" ? "bcv" : "usdt",
-                category_id: row.category_id,
-                account_id: effectiveAccountId,
-                date: row.date,
-            });
-        }
+        try {
+            for (const { row } of selectedRowsSorted) {
+                await addTransaction({
+                    type: "income",
+                    description: row.description,
+                    amount: row.amount,
+                    currency: "USD",
+                    amount_ves: row.amount * rate,
+                    rate_used: rate,
+                    rate_type: ratesState.preferredRate === "bcv" ? "bcv" : "usdt",
+                    category_id: row.category_id,
+                    account_id: effectiveAccountId,
+                    date: row.date,
+                });
+            }
 
-        setImporting(false);
-        setDone(true);
+            setDone(true);
+        } catch (error) {
+            setFileError(error instanceof Error ? error.message : "No se pudieron importar los movimientos.");
+        } finally {
+            setImporting(false);
+        }
     };
 
     return (

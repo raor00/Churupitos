@@ -8,6 +8,10 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useTransactionSound } from "@/hooks/useTransactionSound";
 import { useRatesStore, getRate } from "@/lib/store/useRates";
 import {
+    buildTransactionDerivedFields,
+    getTransactionAmountInAccountCurrency,
+} from "@/lib/transactions/amounts";
+import {
     ArrowLeft,
     ArrowRight,
     Check,
@@ -45,6 +49,7 @@ const txSchema = z.object({
     account_id: z.string().min(1, "Selecciona una cuenta de pago"),
     description: z.string().min(2, "El concepto es muy corto"),
     category_id: z.string().min(1, "Selecciona una categoría"),
+    date: z.string().min(1, "Selecciona una fecha"),
     notes: z.string().optional(),
 });
 
@@ -55,13 +60,6 @@ const iconRegistry = icons as Record<string, LucideIcon>;
 const resolveIcon = (iconName?: string): LucideIcon => {
     if (!iconName) return Tag;
     return iconRegistry[iconName] ?? Tag;
-};
-
-const toUSD = (amount: number, currency: TxFormValues["transaction_currency"], rate: number) => {
-    if (currency === "USD" || currency === "USDT") return amount;
-    if (currency === "VES") return amount / rate;
-    if (currency === "EUR") return amount * 1.08;
-    return amount;
 };
 
 export default function NewTransactionWizard() {
@@ -77,6 +75,7 @@ export default function NewTransactionWizard() {
     const [isCategorySheetOpen, setIsCategorySheetOpen] = useState(false);
     const [categorySearch, setCategorySearch] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
 
     const {
         register,
@@ -92,6 +91,7 @@ export default function NewTransactionWizard() {
             category_id: "",
             amount: 0,
             description: "",
+            date: new Date().toISOString().split("T")[0],
             notes: "",
         },
     });
@@ -101,6 +101,34 @@ export default function NewTransactionWizard() {
     const selectedCategoryId = watch("category_id");
     const selectedAccount = accounts.find((acc) => acc.id === selectedAccountId);
     const selectedCategory = categories.find((cat) => cat.id === selectedCategoryId);
+    const amountValue = Number.parseFloat(amountStr) || 0;
+    const derivedAmounts = useMemo(
+        () =>
+            buildTransactionDerivedFields({
+                amount: amountValue,
+                currency: txCurrency,
+                rate_used: rate,
+            }),
+        [amountValue, rate, txCurrency]
+    );
+    const accountDebitAmount = useMemo(() => {
+        if (!selectedAccount || amountValue <= 0) return 0;
+
+        return getTransactionAmountInAccountCurrency(
+            {
+                amount: amountValue,
+                currency: txCurrency,
+                amount_ves: derivedAmounts.amount_ves,
+                rate_used: derivedAmounts.rate_used,
+            },
+            selectedAccount.currency
+        );
+    }, [amountValue, derivedAmounts.amount_ves, derivedAmounts.rate_used, selectedAccount, txCurrency]);
+    const hasInsufficientFunds =
+        txType === "expense" &&
+        !!selectedAccount &&
+        amountValue > 0 &&
+        accountDebitAmount > selectedAccount.balance;
 
     const categoriesByType = useMemo(
         () =>
@@ -151,6 +179,7 @@ export default function NewTransactionWizard() {
     }, [categories, categoriesByType, noCategoryOption, selectedCategoryId, setValue, txType]);
 
     const handleNumpad = (val: string) => {
+        setSubmitError(null);
         if (val === "delete") {
             setAmountStr((prev) => (prev.length > 1 ? prev.slice(0, -1) : "0"));
             return;
@@ -165,6 +194,7 @@ export default function NewTransactionWizard() {
     const handleNextStep = () => {
         const num = Number.parseFloat(amountStr);
         if (num > 0) {
+            setSubmitError(null);
             setValue("amount", num, { shouldValidate: true });
             setStep(2);
         }
@@ -173,9 +203,8 @@ export default function NewTransactionWizard() {
     const onSubmit = async (data: TxFormValues) => {
         if (!selectedAccount || isSubmitting) return;
         setIsSubmitting(true);
+        setSubmitError(null);
         try {
-            const amountUSD = toUSD(data.amount, data.transaction_currency, rate);
-            const amountInVES = amountUSD * rate;
             const rateType = ratesState.preferredRate === "bcv" ? "bcv" : "usdt";
 
             await addTransaction({
@@ -184,11 +213,11 @@ export default function NewTransactionWizard() {
                 amount: data.amount,
                 currency: data.transaction_currency,
                 account_id: data.account_id,
-                amount_ves: amountInVES,
+                amount_ves: derivedAmounts.amount_ves,
                 rate_used: rate,
                 rate_type: rateType,
                 category_id: data.category_id,
-                date: new Date().toISOString().split("T")[0],
+                date: data.date,
                 notes: data.notes || undefined,
             } as Parameters<typeof addTransaction>[0]);
 
@@ -196,6 +225,8 @@ export default function NewTransactionWizard() {
             else playIncomeSound();
 
             router.push("/transactions");
+        } catch (error) {
+            setSubmitError(error instanceof Error ? error.message : "No se pudo guardar el movimiento.");
         } finally {
             setIsSubmitting(false);
         }
@@ -380,6 +411,21 @@ export default function NewTransactionWizard() {
                                 {errors.account_id && (
                                     <p className="text-error text-[10px] font-mono">{errors.account_id.message}</p>
                                 )}
+                                {selectedAccount && (
+                                    <p className="text-[10px] font-mono text-muted-foreground">
+                                        {txType === "expense" ? "Se descontarán" : "Se agregarán"}{" "}
+                                        <span className="font-bold">
+                                            {selectedAccount.currency === "VES" ? "Bs." : selectedAccount.currency === "EUR" ? "€" : "$"}
+                                            {accountDebitAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </span>{" "}
+                                        en {selectedAccount.currency}.
+                                    </p>
+                                )}
+                                {hasInsufficientFunds && (
+                                    <p className="text-error text-[10px] font-mono">
+                                        Ese gasto supera el saldo disponible de la cuenta seleccionada.
+                                    </p>
+                                )}
                             </div>
 
                             {/* Description */}
@@ -396,6 +442,21 @@ export default function NewTransactionWizard() {
                                     />
                                     {errors.description && (
                                         <p className="text-error text-[10px] font-mono mt-1">{errors.description.message}</p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="text-[10px] font-mono uppercase text-muted-foreground font-bold tracking-widest">
+                                        Fecha
+                                    </label>
+                                    <input
+                                        type="date"
+                                        max={new Date().toISOString().split("T")[0]}
+                                        {...register("date")}
+                                        className="w-full bg-transparent font-mono text-sm mt-1 outline-none placeholder:text-black/25 border-b border-black/10 pb-1"
+                                    />
+                                    {errors.date && (
+                                        <p className="text-error text-[10px] font-mono mt-1">{errors.date.message}</p>
                                     )}
                                 </div>
 
@@ -444,10 +505,16 @@ export default function NewTransactionWizard() {
                                 )}
                             </div>
 
+                            {submitError && (
+                                <div className="paper-card rounded-2xl px-4 py-3 border border-error/20 bg-error/5">
+                                    <p className="text-error text-[11px] font-mono">{submitError}</p>
+                                </div>
+                            )}
+
                             {/* Submit */}
                             <button
                                 type="submit"
-                                disabled={accounts.length === 0 || isSubmitting}
+                                disabled={accounts.length === 0 || isSubmitting || hasInsufficientFunds}
                                 className={`w-full py-4 rounded-2xl font-mono font-bold uppercase tracking-widest shadow-lg transition-all active:scale-[0.98] disabled:opacity-40 ${
                                     txType === "income"
                                         ? "bg-success text-white"

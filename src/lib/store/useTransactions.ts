@@ -3,6 +3,12 @@ import { Transaction, Category, Account } from "@/types";
 import { supabase } from "@/lib/supabase/client";
 import { buildDefaultCategorySeed, categoryIdentity } from "@/lib/categories/catalog";
 import { deserializeAccountFromDb, serializeAccountForDb } from "@/lib/accounts/accountMeta";
+import {
+    buildTransactionDerivedFields,
+    getSignedTransactionImpact,
+    isBalanceNegative,
+    roundBalance,
+} from "@/lib/transactions/amounts";
 
 const getErrorMessage = (error: unknown) => (error instanceof Error ? error.message : "Unknown error");
 const getErrorDetails = (error: unknown) => {
@@ -71,33 +77,25 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
     },
 
     addTransaction: async (tx) => {
+        set({ error: null });
         try {
-            // 1. Calculate new balance based on the current state
             const targetAccount = get().accounts.find(a => a.id === tx.account_id);
             if (!targetAccount) throw new Error("Account not found");
+            const normalizedTx = { ...tx, ...buildTransactionDerivedFields(tx) };
+            const balanceImpact = getSignedTransactionImpact(normalizedTx, targetAccount.currency);
+            const newBalance = roundBalance(targetAccount.balance + balanceImpact);
 
-            let changeAmount = 0;
-            if (targetAccount.currency === tx.currency) {
-                changeAmount = tx.amount;
-            } else if (targetAccount.currency === "VES") {
-                changeAmount = tx.amount_ves || 0;
-            } else {
-                changeAmount = (tx.amount_ves || 0) / (tx.rate_used || 1);
+            if (normalizedTx.type === "expense" && isBalanceNegative(newBalance)) {
+                throw new Error("No tienes saldo suficiente en esa cuenta para registrar ese gasto.");
             }
 
-            const newBalance = tx.type === "expense"
-                ? targetAccount.balance - changeAmount
-                : targetAccount.balance + changeAmount;
-
-            // 2. Insert Transaction into Supabase
             const { data: newTx, error: txError } = await supabase
                 .from('transactions')
-                .insert([tx])
+                .insert([normalizedTx])
                 .select()
                 .single();
             if (txError) throw txError;
 
-            // 3. Update Account Balance in Supabase
             const { data: updatedAcc, error: accError } = await supabase
                 .from('accounts')
                 .update({ balance: newBalance, updated_at: new Date().toISOString() })
@@ -106,7 +104,6 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
                 .single();
             if (accError) throw accError;
 
-            // 4. Update local state
             const normalizedUpdatedAcc = deserializeAccountFromDb(updatedAcc as Account);
             set((state) => ({
                 transactions: [newTx as Transaction, ...state.transactions],
@@ -114,45 +111,66 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
             }));
         } catch (err: unknown) {
             console.error("Error adding transaction:", err);
-            set({ error: getErrorMessage(err) });
+            const message = getErrorMessage(err);
+            set({ error: message });
+            throw err instanceof Error ? err : new Error(message);
         }
     },
 
     updateTransaction: async (id, updates) => {
+        set({ error: null });
         try {
             const state = get();
             const oldTx = state.transactions.find(tx => tx.id === id);
             if (!oldTx) throw new Error("Transaction not found");
+            const nextTx = {
+                ...oldTx,
+                ...updates,
+                ...buildTransactionDerivedFields({
+                    amount: updates.amount ?? oldTx.amount,
+                    currency: updates.currency ?? oldTx.currency,
+                    amount_ves: updates.amount_ves ?? oldTx.amount_ves,
+                    rate_used: updates.rate_used ?? oldTx.rate_used,
+                }),
+            } as Transaction;
+            const oldAccount = state.accounts.find(a => a.id === oldTx.account_id);
+            const nextAccount = state.accounts.find(a => a.id === nextTx.account_id);
 
-            // 1. Update transaction row
+            if (!oldAccount || !nextAccount) {
+                throw new Error("Account not found");
+            }
+
+            const oldImpact = getSignedTransactionImpact(oldTx, oldAccount.currency);
+            const oldAccountBalanceWithoutTx = roundBalance(oldAccount.balance - oldImpact);
+            const nextImpact = getSignedTransactionImpact(nextTx, nextAccount.currency);
+            const nextAccountProjectedBalance =
+                oldAccount.id === nextAccount.id
+                    ? roundBalance(oldAccountBalanceWithoutTx + nextImpact)
+                    : roundBalance(nextAccount.balance + nextImpact);
+
+            if (nextTx.type === "expense" && isBalanceNegative(nextAccountProjectedBalance)) {
+                throw new Error("No tienes saldo suficiente en esa cuenta para guardar ese gasto.");
+            }
+
             const { data, error } = await supabase
                 .from('transactions')
-                .update({ ...updates, updated_at: new Date().toISOString() })
+                .update({
+                    ...updates,
+                    amount_ves: nextTx.amount_ves,
+                    rate_used: nextTx.rate_used,
+                    updated_at: new Date().toISOString(),
+                })
                 .eq('id', id)
                 .select()
                 .single();
             if (error) throw error;
 
             const newTx = data as Transaction;
-
-            // 2. Recalculate account balance:
-            //    Undo the old amount, then apply the new amount
-            const account = state.accounts.find(a => a.id === oldTx.account_id);
-            if (account && account.currency === "USD") {
-                const sign = oldTx.type === "income" ? 1 : -1;
-                const oldUSD = oldTx.currency === "VES"
-                    ? (oldTx.amount_ves || 0) / (oldTx.rate_used || 1)
-                    : oldTx.amount;
-                const newUSD = (updates.currency ?? oldTx.currency) === "VES"
-                    ? ((updates as any).amount_ves || oldTx.amount_ves || 0) / (oldTx.rate_used || 1)
-                    : (updates.amount ?? oldTx.amount);
-
-                const newBalance = account.balance - sign * oldUSD + sign * newUSD;
-
+            if (oldAccount.id === nextAccount.id) {
                 const { data: updatedAcc, error: accErr } = await supabase
                     .from('accounts')
-                    .update({ balance: newBalance, updated_at: new Date().toISOString() })
-                    .eq('id', account.id)
+                    .update({ balance: nextAccountProjectedBalance, updated_at: new Date().toISOString() })
+                    .eq('id', oldAccount.id)
                     .select()
                     .single();
                 if (accErr) throw accErr;
@@ -160,37 +178,61 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
                 const normalizedAcc = deserializeAccountFromDb(updatedAcc as Account);
                 set((s) => ({
                     transactions: s.transactions.map(tx => tx.id === id ? newTx : tx),
-                    accounts: s.accounts.map(a => a.id === account.id ? normalizedAcc : a),
+                    accounts: s.accounts.map(a => a.id === oldAccount.id ? normalizedAcc : a),
                 }));
-            } else {
-                set((s) => ({
-                    transactions: s.transactions.map(tx => tx.id === id ? newTx : tx),
-                }));
+                return;
             }
+
+            const [updatedOldAccRes, updatedNextAccRes] = await Promise.all([
+                supabase
+                    .from('accounts')
+                    .update({ balance: oldAccountBalanceWithoutTx, updated_at: new Date().toISOString() })
+                    .eq('id', oldAccount.id)
+                    .select()
+                    .single(),
+                supabase
+                    .from('accounts')
+                    .update({ balance: nextAccountProjectedBalance, updated_at: new Date().toISOString() })
+                    .eq('id', nextAccount.id)
+                    .select()
+                    .single(),
+            ]);
+
+            if (updatedOldAccRes.error) throw updatedOldAccRes.error;
+            if (updatedNextAccRes.error) throw updatedNextAccRes.error;
+
+            const normalizedOldAcc = deserializeAccountFromDb(updatedOldAccRes.data as Account);
+            const normalizedNextAcc = deserializeAccountFromDb(updatedNextAccRes.data as Account);
+
+            set((s) => ({
+                transactions: s.transactions.map(tx => tx.id === id ? newTx : tx),
+                accounts: s.accounts.map((account) => {
+                    if (account.id === normalizedOldAcc.id) return normalizedOldAcc;
+                    if (account.id === normalizedNextAcc.id) return normalizedNextAcc;
+                    return account;
+                }),
+            }));
         } catch (err: unknown) {
             console.error("Error updating transaction:", err);
-            set({ error: getErrorMessage(err) });
+            const message = getErrorMessage(err);
+            set({ error: message });
+            throw err instanceof Error ? err : new Error(message);
         }
     },
 
     deleteTransaction: async (id) => {
+        set({ error: null });
         try {
             const state = get();
             const tx = state.transactions.find(t => t.id === id);
             if (!tx) throw new Error("Transaction not found");
+            const account = state.accounts.find(a => a.id === tx.account_id);
 
             const { error } = await supabase.from('transactions').delete().eq('id', id);
             if (error) throw error;
 
-            // Reverse the balance effect of this transaction
-            const account = state.accounts.find(a => a.id === tx.account_id);
-            if (account && account.currency === "USD") {
-                const sign = tx.type === "income" ? 1 : -1;
-                const usdAmount = tx.currency === "VES"
-                    ? (tx.amount_ves || 0) / (tx.rate_used || 1)
-                    : tx.amount;
-                const newBalance = account.balance - sign * usdAmount;
-
+            if (account) {
+                const newBalance = roundBalance(account.balance - getSignedTransactionImpact(tx, account.currency));
                 const { data: updatedAcc, error: accErr } = await supabase
                     .from('accounts')
                     .update({ balance: newBalance, updated_at: new Date().toISOString() })
@@ -209,7 +251,9 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
             }
         } catch (err: unknown) {
             console.error("Error deleting transaction:", err);
-            set({ error: getErrorMessage(err) });
+            const message = getErrorMessage(err);
+            set({ error: message });
+            throw err instanceof Error ? err : new Error(message);
         }
     },
 
