@@ -1,12 +1,13 @@
 "use client";
 
-import { createElement, useMemo } from "react";
-import { motion } from "framer-motion";
-import { Plus, DollarSign, TrendingUp, Wallet, icons, type LucideIcon } from "lucide-react";
+import { createElement, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Plus, DollarSign, TrendingUp, Wallet, Pencil, X, icons, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useRatesStore, getRate } from "@/lib/store/useRates";
 import { getBankById } from "@/lib/accounts/bankCatalog";
+import type { Account } from "@/types";
 
 const iconRegistry = icons as Record<string, LucideIcon>;
 
@@ -28,9 +29,13 @@ const CURRENCY_LABEL: Record<string, string> = {
 };
 
 export default function AccountsPage() {
-    const { accounts } = useCurrentUser();
+    const { accounts, updateAccountBalance } = useCurrentUser();
     const ratesState = useRatesStore();
     const rate = getRate(ratesState);
+    const [editingAccount, setEditingAccount] = useState<Account | null>(null);
+    const [balanceInput, setBalanceInput] = useState("");
+    const [savingAccountId, setSavingAccountId] = useState<string | null>(null);
+    const [adjustError, setAdjustError] = useState<string | null>(null);
 
     const toUSD = (amount: number, currency: string) => {
         if (currency === "USD" || currency === "USDT") return amount;
@@ -51,6 +56,42 @@ export default function AccountsPage() {
             .sort((a, b) => b.balance - a.balance);
         return { national, international };
     }, [accounts]);
+
+    const currencySymbol = (currency: string) => CURRENCY_LABEL[currency] ?? "$";
+
+    const openAdjustModal = (account: Account) => {
+        setEditingAccount(account);
+        setBalanceInput(account.balance.toString());
+        setAdjustError(null);
+    };
+
+    const closeAdjustModal = () => {
+        if (savingAccountId) return;
+        setEditingAccount(null);
+        setBalanceInput("");
+        setAdjustError(null);
+    };
+
+    const handleAdjustBalance = async () => {
+        if (!editingAccount) return;
+
+        const nextBalance = Number.parseFloat(balanceInput);
+        if (!Number.isFinite(nextBalance) || nextBalance < 0) {
+            setAdjustError("Ingresa un saldo valido mayor o igual a 0.");
+            return;
+        }
+
+        setSavingAccountId(editingAccount.id);
+        setAdjustError(null);
+        try {
+            await updateAccountBalance(editingAccount.id, nextBalance);
+            closeAdjustModal();
+        } catch (error) {
+            setAdjustError(error instanceof Error ? error.message : "No se pudo actualizar el saldo.");
+        } finally {
+            setSavingAccountId(null);
+        }
+    };
 
     return (
         <div className="pb-safe pt-4 space-y-6">
@@ -115,6 +156,7 @@ export default function AccountsPage() {
                 accounts={groupedAccounts.national}
                 rate={rate}
                 toUSD={toUSD}
+                onAdjustBalance={openAdjustModal}
             />
 
             <AccountSection
@@ -123,7 +165,97 @@ export default function AccountsPage() {
                 accounts={groupedAccounts.international}
                 rate={rate}
                 toUSD={toUSD}
+                onAdjustBalance={openAdjustModal}
             />
+
+            <AnimatePresence>
+                {editingAccount && (
+                    <>
+                        <motion.button
+                            type="button"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-40 bg-black/45"
+                            onClick={closeAdjustModal}
+                        />
+                        <motion.div
+                            initial={{ y: 24, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: 24, opacity: 0 }}
+                            className="fixed inset-x-4 top-1/2 z-50 -translate-y-1/2 rounded-3xl border border-black/10 bg-background p-5 shadow-2xl"
+                        >
+                            <div className="mb-4 flex items-start justify-between gap-3">
+                                <div>
+                                    <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                                        Ajuste manual
+                                    </p>
+                                    <h2 className="font-mono text-lg font-bold uppercase tracking-tight">
+                                        {editingAccount.name}
+                                    </h2>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={closeAdjustModal}
+                                    disabled={!!savingAccountId}
+                                    className="flex h-8 w-8 items-center justify-center rounded-full bg-black/5"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            </div>
+
+                            <div className="paper-card rounded-2xl p-4">
+                                <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                                    Saldo correcto actual
+                                </p>
+                                <div className="mt-2 flex items-center gap-2 border-b border-black/10 pb-2">
+                                    <span className="font-mono text-2xl font-bold">
+                                        {currencySymbol(editingAccount.currency)}
+                                    </span>
+                                    <input
+                                        type="number"
+                                        inputMode="decimal"
+                                        min="0"
+                                        step="0.01"
+                                        value={balanceInput}
+                                        onChange={(event) => setBalanceInput(event.target.value)}
+                                        className="w-full bg-transparent font-mono text-2xl font-bold outline-none"
+                                        placeholder="0.00"
+                                    />
+                                </div>
+                                <p className="mt-2 font-mono text-[10px] text-muted-foreground">
+                                    Este ajuste solo corrige el saldo guardado de la cuenta. No borra ni modifica tu historial.
+                                </p>
+                            </div>
+
+                            {adjustError && (
+                                <div className="mt-3 rounded-2xl border border-error/20 bg-error/5 p-3">
+                                    <p className="font-mono text-[11px] text-error">{adjustError}</p>
+                                </div>
+                            )}
+
+                            <div className="mt-4 grid grid-cols-2 gap-2">
+                                <button
+                                    type="button"
+                                    onClick={closeAdjustModal}
+                                    disabled={!!savingAccountId}
+                                    className="rounded-2xl border border-black/10 py-3 font-mono text-xs font-bold uppercase tracking-widest"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleAdjustBalance}
+                                    disabled={!!savingAccountId}
+                                    className="rounded-2xl bg-foreground py-3 font-mono text-xs font-bold uppercase tracking-widest text-background disabled:opacity-40"
+                                >
+                                    {savingAccountId ? "Guardando..." : "Guardar saldo"}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
@@ -134,12 +266,14 @@ function AccountSection({
     accounts,
     rate,
     toUSD,
+    onAdjustBalance,
 }: {
     title: string;
     subtitle: string;
     accounts: ReturnType<typeof useCurrentUser>["accounts"];
     rate: number;
     toUSD: (amount: number, currency: string) => number;
+    onAdjustBalance: (account: Account) => void;
 }) {
     return (
         <section className="space-y-3">
@@ -213,6 +347,14 @@ function AccountSection({
                                         <p className="font-mono text-[10px] text-muted-foreground mt-0.5">
                                             {showUsd ? `≈ ${approx}` : showVes ? `≈ ${approx}` : acc.currency}
                                         </p>
+                                        <button
+                                            type="button"
+                                            onClick={() => onAdjustBalance(acc)}
+                                            className="mt-2 inline-flex items-center gap-1 rounded-full bg-black/5 px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-widest text-muted-foreground hover:bg-black/10"
+                                        >
+                                            <Pencil className="h-3 w-3" />
+                                            Ajustar
+                                        </button>
                                     </div>
                                 </div>
                             </motion.div>
